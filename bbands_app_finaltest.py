@@ -54,11 +54,11 @@ st.markdown(
 
 
 # Load the BBands Excel file
-bbands_excel_file_path = 'C:\\Users\\jabo\\Desktop\\finance_courses\\BBands_ETFs_2024-08-19.xlsx'
+bbands_excel_file_path = 'BBands_ETFs_2024-08-19.xlsx'
 bbands_sheets_dict = pd.read_excel(bbands_excel_file_path, sheet_name=None)
 
 # Load the ROC/STDDEV Excel file
-roc_stddev_excel_file_path = 'C:\\Users\\jabo\\Desktop\\finance_courses\\ROCSTDEV_ETF_Analysis_2024-08-19_sheets.xlsx'
+roc_stddev_excel_file_path = 'ROCSTDEV_ETF_Analysis_2024-08-19_sheets.xlsx'
 roc_stddev_sheets_dict = pd.read_excel(roc_stddev_excel_file_path, sheet_name=None)
 
 # Function to extract date from the filename
@@ -73,7 +73,7 @@ roc_stddev_date = extract_date_from_filename(roc_stddev_excel_file_path)
 
 
 # Load the image from a URL or a local file
-image_url = "C:\\Users\\jabo\\Desktop\\finance_courses\\momento_logo.png"  # Update this URL
+image_url = "momento_logo.png"  # Update this URL
 image = Image.open(image_url)
 
 # Display the logo in the sidebar

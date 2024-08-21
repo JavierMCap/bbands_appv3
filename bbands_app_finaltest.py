@@ -178,7 +178,7 @@ roc_stddev_date = extract_date_from_filename(roc_stddev_excel_file_path)
 
 
 # Load the image from a URL or a local file
-image_url = "C:\\Users\\jabo\\Desktop\\finance_courses\\momento_logo.png"  # Update this URL
+image_url = "momento_logo.png"  # Update this URL
 image = Image.open(image_url)
 
 # Display the logo in the sidebar

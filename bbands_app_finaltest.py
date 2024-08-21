@@ -3,7 +3,7 @@ import pandas as pd
 import requests
 from datetime import datetime, timedelta
 from pandas.tseries.offsets import BDay
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import altair as alt
 import re
 from PIL import Image

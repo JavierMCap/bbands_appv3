@@ -9,120 +9,9 @@ import re
 from PIL import Image
 #api key below
 api_token = st.secrets['API_KEY']
-# Custom CSS for a darker gray sidebar
-st.markdown(
-    """
-    <style>
-    /* Change the background color of the sidebar to a darker gray */
-    [data-testid="stSidebar"] {
-        background-color: #626770; /* You can adjust this hex code for a lighter or darker shade */
-    }
+sectors = ['XLK', 'XLC', 'XLV', 'XLF', 'XLP', 'XLI', 'XLE', 'XLY', 'XLB', 'XLU', 'XLRE']
+subsectors = ['GDX', 'UFO', 'KBE', 'AMLP', 'ITA', 'ITB', 'IAK', 'SMH', 'PINK', 'XBI', 'FTWO', 'NLR']
 
-    /* Change the text color in the sidebar to dark gray */
-    [data-testid="stSidebar"] .css-1d391kg p,
-    [data-testid="stSidebar"] .css-1d391kg label,
-    [data-testid="stSidebar"] h1,
-    [data-testid="stSidebar"] h2,
-    [data-testid="stSidebar"] h3 {
-        color: #333333;
-    }
-    
-    /* Customize the selectbox dropdown to match the darker gray theme */
-    .stSelectbox label {
-        color: #333333;
-    }
-    
-    .stSelectbox .css-11unzgr {
-        background-color: #c0c0c0; /* Slightly darker than the sidebar background */
-        color: #333333;
-    }
-
-    /* Customize the dataframe header and cell colors to match the theme */
-    .dataframe thead th {
-        background-color: #c0c0c0; /* Slightly darker gray */
-        color: #333333;
-    }
-
-    .dataframe tbody tr td {
-        background-color: #e6e6e6;
-        color: #333333;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
-
-# Load the BBands Excel file
-bbands_excel_file_path = 'BBands_ETFs_2024-08-21.xlsx'
-bbands_sheets_dict = pd.read_excel(bbands_excel_file_path, sheet_name=None)
-
-# Load the ROC/STDDEV Excel file
-roc_stddev_excel_file_path = 'ROCSTDEV_ETF_Analysis_2024-08-21_sheets.xlsx'
-roc_stddev_sheets_dict = pd.read_excel(roc_stddev_excel_file_path, sheet_name=None)
-
-# Function to extract date from the filename
-def extract_date_from_filename(filename):
-    match = re.search(r'\d{4}-\d{2}-\d{2}', filename)
-    if match:
-        return datetime.strptime(match.group(), '%Y-%m-%d').strftime('%B %d, %Y')
-    return 'Unknown Date'
-
-bbands_date = extract_date_from_filename(bbands_excel_file_path)
-roc_stddev_date = extract_date_from_filename(roc_stddev_excel_file_path)
-
-
-# Load the image from a URL or a local file
-image_url = "momento_logo.png"  # Update this URL
-image = Image.open(image_url)
-
-# Display the logo in the sidebar
-st.sidebar.image(image, use_column_width=True)
-
-# Sidebar for analysis selection
-st.sidebar.title("Select Analysis Type")
-selected_analysis = st.sidebar.radio("Analysis Type", ["BBands analysis", "ROC/STDDEV analysis"])
-
-# Sidebar for sector/subsector selection based on analysis type
-
-if selected_analysis == "BBands analysis":
-    st.sidebar.title("Select Sector")
-    selected_sector = st.sidebar.radio("Sectors", list(bbands_sheets_dict.keys()))
-    df = bbands_sheets_dict[selected_sector]
-else:
-    st.sidebar.title("Select Subsector")
-    selected_subsector = st.sidebar.radio("Subsectors", list(roc_stddev_sheets_dict.keys()))
-    df = roc_stddev_sheets_dict[selected_subsector]
-
-# Color mapping for different bands (for BBands analysis)
-color_map = {
-    'LBand 1STD': 'background-color: lightcoral',  # light red
-    'LBand 2STD': 'background-color: red',  # stronger red
-    'UBand 1STD': 'color: black; background-color: lightgreen',  # light green with black text
-    'UBand 2STD': 'background-color: green',  # stronger green
-    'Mid Zone': '',  # no color
-}
-
-def highlight_cells(val):
-    return color_map.get(val, '')
-
-def prioritize_bands(df):
-    band_priority = {
-        'UBand 2STD': 1,
-        'UBand 1STD': 2,
-        'LBand 1STD': 3,
-        'LBand 2STD': 4,
-        'Mid Zone': 5
-    }
-    df['Priority'] = df[['Crossing Daily Band', 'Crossing Weekly Band', 'Crossing Monthly Band']].apply(
-        lambda x: min(band_priority.get(x[0], 5), band_priority.get(x[1], 5), band_priority.get(x[2], 5)), axis=1
-    )
-    return df.sort_values('Priority').drop(columns='Priority')
-
-def generate_tradingview_embed(ticker):
-    return f"""
-    <iframe src="https://s.tradingview.com/widgetembed/?frameElementId=tradingview_c2a09&symbol={ticker}&interval=D&hidesidetoolbar=1&symboledit=1&saveimage=1&toolbarbg=f1f3f6&studies=[%7B%22id%22%3A%22BB%40tv-basicstudies%22%2C%22inputs%22%3A%5B20%2C2%5D%7D]&theme=Dark&style=1&timezone=exchange&withdateranges=1&hideideas=1&studies_overrides={{}}&overrides={{}}&enabled_features=[]&disabled_features=[]&locale=en&utm_source=www.tradingview.com&utm_medium=widget&utm_campaign=chart&utm_term={ticker}" width="100%" height="600" frameborder="0" allowfullscreen></iframe>
-    """
 
 def fetch_current_price(symbol, api_token):
     url = f'https://eodhd.com/api/real-time/{symbol}.US?api_token={api_token}&fmt=json'
@@ -167,6 +56,7 @@ def fetch_historical_data(symbol, api_token, start_date, end_date):
         print(f"Failed to fetch data for {symbol}: {response.status_code}, {response.text}")
         return pd.DataFrame()
 
+
 def analyze_symbol(symbol, api_token):
     current_date = datetime.now()
     start_of_month = current_date.replace(day=1)
@@ -208,7 +98,159 @@ def analyze_symbol(symbol, api_token):
     ytd_percentage = round(((current_price - start_year_price) / start_year_price) * 100, 2) if start_year_price is not None else None
     five_day_percentage = round(((current_price - start_5_days_price) / start_5_days_price) * 100, 2) if start_5_days_price is not None else None
 
-    return symbol, current_price, today_percentage, mtd_percentage, qtd_percentage, ytd_percentage, five_day_percentage
+    return symbol, current_price, today_percentage, five_day_percentage, mtd_percentage, qtd_percentage, ytd_percentage
+
+# Function Definitions
+def create_dataframe(symbols, api_token):
+    data = []
+    with ThreadPoolExecutor() as executor:
+        futures = [executor.submit(analyze_symbol, symbol, api_token) for symbol in symbols]
+        for future in as_completed(futures):
+            result = future.result()
+            if result[1] is not None:  # Skip if current_price is None
+                data.append(result)
+    
+    df = pd.DataFrame(data, columns=['Symbol', 'Current Price', 'Today %', '5-Day %', 'MTD %', 'QTD %', 'YTD %'])
+    return df
+
+
+# Custom CSS for a darker gray sidebar
+st.markdown(
+    """
+    <style>
+    /* Change the background color of the sidebar to a darker gray */
+    [data-testid="stSidebar"] {
+        background-color: #626770; /* You can adjust this hex code for a lighter or darker shade */
+    }
+
+    /* Change the text color in the sidebar to dark gray */
+    [data-testid="stSidebar"] .css-1d391kg p,
+    [data-testid="stSidebar"] .css-1d391kg label,
+    [data-testid="stSidebar"] h1,
+    [data-testid="stSidebar"] h2,
+    [data-testid="stSidebar"] h3 {
+        color: #333333;
+    }
+    
+    /* Customize the selectbox dropdown to match the darker gray theme */
+    .stSelectbox label {
+        color: #333333;
+    }
+    
+    .stSelectbox .css-11unzgr {
+        background-color: #c0c0c0; /* Slightly darker than the sidebar background */
+        color: #333333;
+    }
+
+    /* Customize the dataframe header and cell colors to match the theme */
+    .dataframe thead th {
+        background-color: #c0c0c0; /* Slightly darker gray */
+        color: #333333;
+    }
+
+    .dataframe tbody tr td {
+        background-color: #e6e6e6;
+        color: #333333;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+# Load the BBands Excel file
+bbands_excel_file_path = 'C:\\Users\\jabo\\Desktop\\finance_courses\\BBands_ETFs_2024-08-21.xlsx'
+bbands_sheets_dict = pd.read_excel(bbands_excel_file_path, sheet_name=None)
+
+# Load the ROC/STDDEV Excel file
+roc_stddev_excel_file_path = 'C:\\Users\\jabo\\Desktop\\finance_courses\\ROCSTDEV_ETF_Analysis_2024-08-21_sheets.xlsx'
+roc_stddev_sheets_dict = pd.read_excel(roc_stddev_excel_file_path, sheet_name=None)
+
+# Function to extract date from the filename
+def extract_date_from_filename(filename):
+    match = re.search(r'\d{4}-\d{2}-\d{2}', filename)
+    if match:
+        return datetime.strptime(match.group(), '%Y-%m-%d').strftime('%B %d, %Y')
+    return 'Unknown Date'
+
+bbands_date = extract_date_from_filename(bbands_excel_file_path)
+roc_stddev_date = extract_date_from_filename(roc_stddev_excel_file_path)
+
+
+
+# Load the image from a URL or a local file
+image_url = "C:\\Users\\jabo\\Desktop\\finance_courses\\momento_logo.png"  # Update this URL
+image = Image.open(image_url)
+
+# Display the logo in the sidebar
+st.sidebar.image(image, use_column_width=True)
+
+# Sidebar for analysis selection
+st.sidebar.title("Select Analysis Type")
+selected_analysis = st.sidebar.radio("Analysis Type", ["BBands analysis", "Sector Overall Performance" ,"ROC/STDDEV analysis"])
+
+# Sidebar for sector/subsector selection based on analysis type
+if selected_analysis == "BBands analysis":
+    st.sidebar.title("Select Sector")
+    selected_sector = st.sidebar.radio("Sectors", list(bbands_sheets_dict.keys()))
+    df = bbands_sheets_dict[selected_sector]
+elif selected_analysis == "Sector Overall Performance":
+    st.sidebar.title("Sector or Subsector")
+    
+    # Step 1: Choose between Sector or Subsector
+    selection_type = st.sidebar.radio("Choose Type", ["Sector", "Subsector"])
+    
+    #if selection_type == "Sector":
+        #selected_sector = st.sidebar.radio("Sectors", sectors)
+        #df = create_dataframe([selected_sector], api_token)
+    #else:
+        #selected_subsector = st.sidebar.radio("Subsectors", subsectors)
+        #df = create_dataframe([selected_subsector], api_token)
+else:
+    st.sidebar.title("Select Subsector")
+    selected_subsector = st.sidebar.radio("Subsectors", list(roc_stddev_sheets_dict.keys()))
+    df = roc_stddev_sheets_dict[selected_subsector]
+
+
+# Color mapping for different bands (for BBands analysis)
+color_map = {
+    'LBand 1STD': 'background-color: lightcoral',  # light red
+    'LBand 2STD': 'background-color: red',  # stronger red
+    'UBand 1STD': 'color: black; background-color: lightgreen',  # light green with black text
+    'UBand 2STD': 'background-color: green',  # stronger green
+    'Mid Zone': '',  # no color
+}
+
+def highlight_cells(val):
+    return color_map.get(val, '')
+
+def prioritize_bands(df):
+    band_priority = {
+        'UBand 2STD': 1,
+        'UBand 1STD': 2,
+        'LBand 1STD': 3,
+        'LBand 2STD': 4,
+        'Mid Zone': 5
+    }
+    df['Priority'] = df[['Crossing Daily Band', 'Crossing Weekly Band', 'Crossing Monthly Band']].apply(
+        lambda x: min(band_priority.get(x[0], 5), band_priority.get(x[1], 5), band_priority.get(x[2], 5)), axis=1
+    )
+    return df.sort_values('Priority').drop(columns='Priority')
+
+def generate_tradingview_embed(ticker):
+    return f"""
+    <iframe src="https://s.tradingview.com/widgetembed/?frameElementId=tradingview_c2a09&symbol={ticker}&interval=D&hidesidetoolbar=1&symboledit=1&saveimage=1&toolbarbg=f1f3f6&studies=[%7B%22id%22%3A%22BB%40tv-basicstudies%22%2C%22inputs%22%3A%5B20%2C2%5D%7D]&theme=Dark&style=1&timezone=exchange&withdateranges=1&hideideas=1&studies_overrides={{}}&overrides={{}}&enabled_features=[]&disabled_features=[]&locale=en&utm_source=www.tradingview.com&utm_medium=widget&utm_campaign=chart&utm_term={ticker}" width="100%" height="600" frameborder="0" allowfullscreen></iframe>
+    """
+
+
+# Color mapping for percentage columns
+def color_percentages(val):
+    if pd.isna(val):
+        return ''
+    elif val < 0:
+        return 'background-color: lightcoral; color: black'
+    else:
+        return 'background-color: lightgreen; color: black'
+
 
 # Main code
 if selected_analysis == "BBands analysis":
@@ -243,7 +285,7 @@ if selected_analysis == "BBands analysis":
     else:
         st.write(f"Could not fetch data for {selected_ticker}. Please try again later.")
 
-else:
+elif selected_analysis == "ROC/STDDEV analysis":
     st.title(f"{selected_subsector} - ROC/STDDEV Analysis - {roc_stddev_date}")
     st.dataframe(df, height=500, width=1000)
 
@@ -279,8 +321,7 @@ else:
         x_min, x_max = df['ROC/STDDEV'].min(), df['ROC/STDDEV'].max()
         y_min, y_max = df['RSI'].min(), df['RSI'].max()
         
-        
-       # Create scatter plot with dynamic domain
+        # Create scatter plot with dynamic domain
         scatter = alt.Chart(df).mark_circle(size=60).encode(
             x=alt.X('ROC/STDDEV', scale=alt.Scale(domain=[x_min, x_max]), title='ROC/STDDEV'),
             y=alt.Y('RSI', scale=alt.Scale(domain=[y_min, y_max]), title='RSI'),
@@ -314,4 +355,27 @@ else:
         
         st.altair_chart(chart, use_container_width=True)
     else:
-        st.write("The dataframe does not contain the required columns for the scatter plot.") 
+        st.write("The dataframe does not contain the required columns for the scatter plot.")
+
+# New Section: Sector and Subsector Performance
+elif selected_analysis == "Sector Overall Performance":
+    sector_df = create_dataframe(sectors, api_token)
+    subsector_df = create_dataframe(subsectors, api_token)
+    
+    st.title("Sector and Subsector Performance")
+
+    tab1, tab2 = st.tabs(["Sector Performance", "Subsector Performance"])
+    # Round the percentage columns to two decimal places
+    
+
+    with tab1:
+        st.subheader("Sector DataFrame")
+        sector_df_styled = sector_df.style.applymap(color_percentages, subset=['Today %', '5-Day %', 'MTD %', 'QTD %', 'YTD %'])
+        sector_df_styled = sector_df_styled.format({'Current Price': '{:.2f}', 'Today %': '{:.2f}', '5-Day %': '{:.2f}', 'MTD %': '{:.2f}', 'QTD %': '{:.2f}', 'YTD %': '{:.2f}'})
+        st.dataframe(sector_df_styled, height=500, width=1000)
+
+    with tab2:
+        st.subheader("Subsector DataFrame")
+        subsector_df_styled = subsector_df.style.applymap(color_percentages, subset=['Today %', '5-Day %', 'MTD %', 'QTD %', 'YTD %'])
+        subsector_df_styled = subsector_df_styled.format({'Current Price': '{:.2f}', 'Today %': '{:.2f}', '5-Day %': '{:.2f}', 'MTD %': '{:.2f}', 'QTD %': '{:.2f}', 'YTD %': '{:.2f}'})
+        st.dataframe(subsector_df_styled, height=500, width=1000)

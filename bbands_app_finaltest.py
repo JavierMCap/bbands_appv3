@@ -158,11 +158,11 @@ st.markdown(
 )
 
 # Load the BBands Excel file
-bbands_excel_file_path = 'BBands_ETFs_2024-08-21.xlsx'
+bbands_excel_file_path = 'BBands_ETFs_2024-08-22.xlsx'
 bbands_sheets_dict = pd.read_excel(bbands_excel_file_path, sheet_name=None)
 
 # Load the ROC/STDDEV Excel file
-roc_stddev_excel_file_path = 'ROCSTDEV_ETF_Analysis_2024-08-21_sheets.xlsx'
+roc_stddev_excel_file_path = 'ROCSTDEV_ETF_Analysis_2024-08-22_sheets.xlsx'
 roc_stddev_sheets_dict = pd.read_excel(roc_stddev_excel_file_path, sheet_name=None)
 
 # Function to extract date from the filename

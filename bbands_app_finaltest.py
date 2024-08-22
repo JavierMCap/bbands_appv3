@@ -271,7 +271,7 @@ if selected_analysis == "BBands analysis":
         st.components.v1.html(chart_html, height=600)
 
     # Perform and display the analysis for the selected ticker
-    symbol, current_price, today_percentage, mtd_percentage, qtd_percentage, ytd_percentage, five_day_percentage = analyze_symbol(selected_ticker, api_token)
+    symbol, current_price, today_percentage, five_day_percentage, mtd_percentage, qtd_percentage, ytd_percentage = analyze_symbol(selected_ticker, api_token)
 
     if current_price is not None:
         with col2:

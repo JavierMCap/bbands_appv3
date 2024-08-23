@@ -288,11 +288,11 @@ if selected_analysis == "BBands analysis":
 
 # Z Score Analysis Section
 elif selected_analysis == "Z Score Analysis":
-    st.sidebar.title(f"Select ETF for Z Score Analysis - {zscore_date}")
+    st.sidebar.title(f"Select ETF for Z Score Analysis")
     selected_etf = st.sidebar.radio("ETFs", list(z_score_sheets_dict.keys()))
     df = z_score_sheets_dict[selected_etf]
     
-    st.title(f"{selected_etf} - Z Score Analysis")
+    st.title(f"{selected_etf} - Z Score Analysis (52 W) - {zscore_date} ")
     st.dataframe(df, height=500, width=1000)
 
     # Display chart and data for selected ETF symbol

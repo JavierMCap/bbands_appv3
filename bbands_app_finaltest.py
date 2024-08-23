@@ -9,7 +9,7 @@ import re
 from PIL import Image
 #api key below
 api_token = st.secrets['API_KEY']
-sectors = ['XLK', 'XLC', 'XLV', 'XLF', 'XLP', 'XLI', 'XLE', 'XLY', 'XLB', 'XLU', 'XLRE', 'MAGS', 'SPY']
+sectors = ['XLK', 'XLC', 'XLV', 'XLF', 'XLP', 'XLI', 'XLE', 'XLY', 'XLB', 'XLU', 'XLRE']
 subsectors = ['GDX', 'UFO', 'KBE', 'AMLP', 'ITA', 'ITB', 'IAK', 'SMH', 'PINK', 'XBI', 'FTWO', 'NLR']
 
 
@@ -158,12 +158,15 @@ st.markdown(
 )
 
 # Load the BBands Excel file
-bbands_excel_file_path = 'BBands_ETFs_2024-08-23.xlsx'
+bbands_excel_file_path = 'C:\\Users\\jabo\\Desktop\\finance_courses\\BBands_ETFs_2024-08-23.xlsx'
 bbands_sheets_dict = pd.read_excel(bbands_excel_file_path, sheet_name=None)
 
 # Load the ROC/STDDEV Excel file
-roc_stddev_excel_file_path = 'ROCSTDEV_ETF_Analysis_2024-08-23_sheets.xlsx'
+roc_stddev_excel_file_path = 'C:\\Users\\jabo\\Desktop\\finance_courses\\ROCSTDEV_ETF_Analysis_2024-08-23_sheets.xlsx'
 roc_stddev_sheets_dict = pd.read_excel(roc_stddev_excel_file_path, sheet_name=None)
+
+z_score_excel_file_path = 'C:\\Users\\jabo\\Desktop\\finance_courses\\Z_Score_Results_2024-08-23.xlsx'
+z_score_sheets_dict = pd.read_excel(z_score_excel_file_path, sheet_name=None)
 
 # Function to extract date from the filename
 def extract_date_from_filename(filename):
@@ -174,11 +177,12 @@ def extract_date_from_filename(filename):
 
 bbands_date = extract_date_from_filename(bbands_excel_file_path)
 roc_stddev_date = extract_date_from_filename(roc_stddev_excel_file_path)
+zscore_date = extract_date_from_filename(z_score_excel_file_path)
 
 
 
 # Load the image from a URL or a local file
-image_url = "momento_logo.png"  # Update this URL
+image_url = "C:\\Users\\jabo\\Desktop\\finance_courses\\momento_logo.png"  # Update this URL
 image = Image.open(image_url)
 
 # Display the logo in the sidebar
@@ -186,18 +190,13 @@ st.sidebar.image(image, use_column_width=True)
 
 # Sidebar for analysis selection
 st.sidebar.title("Select Analysis Type")
-selected_analysis = st.sidebar.radio("Analysis Type", ["BBands analysis", "Sector Overall Performance" ,"ROC/STDDEV analysis"])
+selected_analysis = st.sidebar.radio("Analysis Type", ["BBands analysis", "Sector Overall Performance", "ROC/STDDEV analysis", "Z Score Analysis"])
 
 # Sidebar for sector/subsector selection based on analysis type
 if selected_analysis == "BBands analysis":
     st.sidebar.title("Select Sector")
     selected_sector = st.sidebar.radio("Sectors", list(bbands_sheets_dict.keys()))
     df = bbands_sheets_dict[selected_sector]
-elif selected_analysis == "Sector Overall Performance":
-    st.sidebar.title("Sector or Subsector")
-    
-    # Step 1: Choose between Sector or Subsector
-    selection_type = st.sidebar.radio("Choose Type", ["Sector", "Subsector"])
     
     #if selection_type == "Sector":
         #selected_sector = st.sidebar.radio("Sectors", sectors)
@@ -205,7 +204,9 @@ elif selected_analysis == "Sector Overall Performance":
     #else:
         #selected_subsector = st.sidebar.radio("Subsectors", subsectors)
         #df = create_dataframe([selected_subsector], api_token)
-else:
+# New Section: Z Score Analysis
+
+elif selected_analysis == "ROC/STDDEV analysis":
     st.sidebar.title("Select Subsector")
     selected_subsector = st.sidebar.radio("Subsectors", list(roc_stddev_sheets_dict.keys()))
     df = roc_stddev_sheets_dict[selected_subsector]
@@ -285,6 +286,41 @@ if selected_analysis == "BBands analysis":
     else:
         st.write(f"Could not fetch data for {selected_ticker}. Please try again later.")
 
+# Z Score Analysis Section
+elif selected_analysis == "Z Score Analysis":
+    st.sidebar.title(f"Select ETF for Z Score Analysis - {zscore_date}")
+    selected_etf = st.sidebar.radio("ETFs", list(z_score_sheets_dict.keys()))
+    df = z_score_sheets_dict[selected_etf]
+    
+    st.title(f"{selected_etf} - Z Score Analysis")
+    st.dataframe(df, height=500, width=1000)
+
+    # Display chart and data for selected ETF symbol
+    selected_ticker = st.selectbox("Select Ticker to View Chart", df['Ticker'])
+
+    # Generate and display the TradingView chart
+    col1, col2 = st.columns([3, 1])
+
+    with col1:
+        chart_html = generate_tradingview_embed(selected_ticker)
+        st.components.v1.html(chart_html, height=600)
+
+    # Perform and display the analysis for the selected ticker
+    symbol, current_price, today_percentage, five_day_percentage, mtd_percentage, qtd_percentage, ytd_percentage = analyze_symbol(selected_ticker, api_token)
+
+    if current_price is not None:
+        with col2:
+            st.subheader(f"{selected_ticker}")
+            st.write(f"**Current Price:** {current_price}")
+            st.write(f"**Today:** {today_percentage}%")
+            st.write(f"**5-Day:** {five_day_percentage}%")
+            st.write(f"**MTD:** {mtd_percentage}%")
+            st.write(f"**QTD:** {qtd_percentage}%")
+            st.write(f"**YTD:** {ytd_percentage}%")
+    else:
+        st.write(f"Could not fetch data for {selected_ticker}. Please try again later.")
+
+    
 elif selected_analysis == "ROC/STDDEV analysis":
     st.title(f"{selected_subsector} - ROC/STDDEV Analysis - {roc_stddev_date}")
     st.dataframe(df, height=500, width=1000)
@@ -300,7 +336,7 @@ elif selected_analysis == "ROC/STDDEV analysis":
         st.components.v1.html(chart_html, height=600)
 
     # Perform and display the analysis for the selected ticker
-    symbol, current_price, today_percentage, five_day_percentage, mtd_percentage, qtd_percentage, ytd_percentage = analyze_symbol(selected_ticker, api_token)
+    symbol, current_price, today_percentage, five_day_percentage,  mtd_percentage, qtd_percentage, ytd_percentage = analyze_symbol(selected_ticker, api_token)
 
     if current_price is not None:
         with col2:

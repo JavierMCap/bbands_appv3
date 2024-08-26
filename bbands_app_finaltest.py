@@ -165,7 +165,7 @@ bbands_sheets_dict = pd.read_excel(bbands_excel_file_path, sheet_name=None)
 roc_stddev_excel_file_path = 'ROCSTDEV_ETF_Analysis_2024-08-23_sheets.xlsx'
 roc_stddev_sheets_dict = pd.read_excel(roc_stddev_excel_file_path, sheet_name=None)
 
-z_score_excel_file_path = 'Z_Score_Results_2024-08-23.xlsx'
+z_score_excel_file_path = 'Z_Score_Results_2024-08-23_GHub.xlsx'
 z_score_sheets_dict = pd.read_excel(z_score_excel_file_path, sheet_name=None)
 
 # Function to extract date from the filename

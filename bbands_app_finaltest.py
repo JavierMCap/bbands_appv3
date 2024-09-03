@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import requests
 from datetime import datetime, timedelta
-from pandas.tseries.offsets import BDay
+from pandas.tseries.offsets import BDay, MonthBegin
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import altair as alt
 import re
@@ -60,6 +60,9 @@ def fetch_historical_data(symbol, api_token, start_date, end_date):
 def analyze_symbol(symbol, api_token):
     current_date = datetime.now()
     start_of_month = current_date.replace(day=1)
+    # Check if the first day is a business day, if not roll forward
+    if not pd.Timestamp(start_of_month).is_busday():
+        start_of_month = pd.Timestamp(start_of_month) + BDay(1)
     start_of_quarter = (current_date - pd.offsets.QuarterBegin(startingMonth=1)).strftime('%Y-%m-%d')
     start_of_year = current_date.replace(month=1, day=1)
     start_of_30_days = current_date - timedelta(days=30)

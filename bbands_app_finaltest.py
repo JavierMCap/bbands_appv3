@@ -13,6 +13,14 @@ api_token = st.secrets['API_KEY']
 sectors = ['XLK', 'XLC', 'XLV', 'XLF', 'XLP', 'XLI', 'XLE', 'XLY', 'XLB', 'XLU', 'XLRE', 'MAGS', 'SPY']
 subsectors = ['GDX', 'UFO', 'KBE', 'KRE', 'AMLP', 'ITA', 'ITB', 'IAK', 'SMH', 'PINK', 'XBI', 'NLR']
 
+def get_previous_business_day(date):
+    """
+    Adjust the date to the nearest previous business day if it falls on a non-business day (weekend or holiday).
+    """
+    while date not in pd.bdate_range(date, date, holidays=USFederalHolidayCalendar().holidays()):
+        date -= BDay(1)
+    return date
+
 
 def fetch_current_price(symbol, api_token):
     url = f'https://eodhd.com/api/real-time/{symbol}.US?api_token={api_token}&fmt=json'
@@ -60,18 +68,12 @@ def fetch_historical_data(symbol, api_token, start_date, end_date):
 
 def analyze_symbol(symbol, api_token):
     current_date = datetime.now()
-    start_of_month = current_date.replace(day=1)
-    # Check if the first day is a business day, if not roll forward
-    # Use bdate_range to check if the date is in a business day range
-    if start_of_month not in pd.bdate_range(start_of_month, start_of_month):
-        # Roll forward to the next business day
-        start_of_month = pd.Timestamp(start_of_month) + BDay(1)
-
-    start_of_quarter = (current_date - pd.offsets.QuarterBegin(startingMonth=1)).strftime('%Y-%m-%d')
-    start_of_year = current_date.replace(month=1, day=1)
-    start_of_30_days = current_date - timedelta(days=30)
-    start_of_5_days = current_date - BDay(5)
-
+    # Adjusting dates to the nearest previous business day
+    start_of_month = get_previous_business_day(current_date.replace(day=1))
+    start_of_quarter = get_previous_business_day(pd.Timestamp((current_date - pd.offsets.QuarterBegin(startingMonth=1)).strftime('%Y-%m-%d')))
+    start_of_year = get_previous_business_day(current_date.replace(month=1, day=1))
+    start_of_5_days = get_previous_business_day(current_date - BDay(5))
+    
     with ThreadPoolExecutor() as executor:
         current_price_future = executor.submit(fetch_current_price, symbol, api_token)
         previous_close_price_future = executor.submit(fetch_previous_close_price, symbol, api_token)

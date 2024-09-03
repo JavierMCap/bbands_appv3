@@ -2,7 +2,8 @@ import streamlit as st
 import pandas as pd
 import requests
 from datetime import datetime, timedelta
-from pandas.tseries.offsets import BDay, MonthBegin
+from pandas.tseries.offsets import BDay
+from pandas.tseries.holiday import USFederalHolidayCalendar
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import altair as alt
 import re

@@ -18,10 +18,13 @@ def get_previous_business_day(date):
     Adjust the date to the nearest previous business day if it falls on a non-business day (weekend or holiday).
     """
     holidays = USFederalHolidayCalendar().holidays()
-    while not pd.bdate_range(date, date, holidays=holidays).size:
+    bday_range = pd.bdate_range(date, date, freq='C', holidays=holidays)
+    
+    while not len(bday_range):
         date -= BDay(1)
+        bday_range = pd.bdate_range(date, date, freq='C', holidays=holidays)
+    
     return date
-
 
 def fetch_current_price(symbol, api_token):
     url = f'https://eodhd.com/api/real-time/{symbol}.US?api_token={api_token}&fmt=json'

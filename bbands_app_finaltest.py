@@ -9,6 +9,9 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import altair as alt
 import re
 from PIL import Image
+import firebase_admin
+from firebase_admin import credentials, firestore
+
 #api key below
 api_token = st.secrets['API_KEY']
 key_dict = json.loads(st.secrets['textkey'])

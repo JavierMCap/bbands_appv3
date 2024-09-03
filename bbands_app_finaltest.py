@@ -11,7 +11,7 @@ import re
 from PIL import Image
 #api key below
 api_token = st.secrets['API_KEY']
-key_dict = json.loads(st.secrets["textkey"])
+key_dict = json.loads(st.secrets['textkey'])
 # Initialize Firestore if not already initialized
 if not firebase_admin._apps:
     cred = credentials.Certificate(key_dict)

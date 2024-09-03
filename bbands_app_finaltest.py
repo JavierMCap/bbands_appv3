@@ -1,4 +1,5 @@
 import streamlit as st
+import json
 import pandas as pd
 import requests
 from datetime import datetime, timedelta
@@ -10,8 +11,21 @@ import re
 from PIL import Image
 #api key below
 api_token = st.secrets['API_KEY']
+key_dict = json.loads(st.secrets["textkey"])
+# Initialize Firestore if not already initialized
+if not firebase_admin._apps:
+    cred = credentials.Certificate(key_dict)
+    firebase_admin.initialize_app(cred)
+
+db = firestore.client()
+
+
+real_sectors = ['XLK', 'XLC', 'XLV', 'XLF', 'XLP', 'XLI', 'XLE', 'XLY', 'XLB', 'XLU', 'XLRE']
+real_subsectors = ['GDX', 'UFO', 'KBE', 'AMLP', 'ITA', 'ITB', 'IAK', 'SMH', 'PINK', 'XBI', 'NLR']
+
 sectors = ['XLK', 'XLC', 'XLV', 'XLF', 'XLP', 'XLI', 'XLE', 'XLY', 'XLB', 'XLU', 'XLRE', 'MAGS', 'SPY']
 subsectors = ['GDX', 'UFO', 'KBE', 'KRE', 'AMLP', 'ITA', 'ITB', 'IAK', 'SMH', 'PINK', 'XBI', 'NLR']
+
 
 def get_previous_business_day(date):
     """
@@ -25,6 +39,33 @@ def get_previous_business_day(date):
         bday_range = pd.bdate_range(date, date, freq='C', holidays=holidays)
     
     return date
+
+# Firestore data fetching functions
+def fetch_bbands_data_from_firestore(sector):
+    collection_ref = db.collection('BBands_Results').document(sector).collection('Symbols')
+    docs = collection_ref.stream()
+    data = []
+    for doc in docs:
+        doc_dict = doc.to_dict()
+        data.append({
+            'Symbol': doc_dict.get('Symbol', ''),
+            'Crossing Daily Band': doc_dict.get('Crossing Daily Band', ''),
+            'Crossing Weekly Band': doc_dict.get('Crossing Weekly Band', ''),
+            'Crossing Monthly Band': doc_dict.get('Crossing Monthly Band', '')
+        })
+    return pd.DataFrame(data)
+
+def fetch_roc_stddev_data_from_firestore(performance_type):
+    collection_ref = db.collection('ROCSTDEV_Results').document(performance_type).collection('Top_Symbols')
+    docs = collection_ref.stream()
+    data = [doc.to_dict() for doc in docs]
+    return pd.DataFrame(data)
+
+def fetch_z_score_data_from_firestore(score_type):
+    collection_ref = db.collection('Z_score_results').document(score_type).collection('Records')
+    docs = collection_ref.stream()
+    data = [doc.to_dict() for doc in docs]
+    return pd.DataFrame(data)
 
 def fetch_current_price(symbol, api_token):
     url = f'https://eodhd.com/api/real-time/{symbol}.US?api_token={api_token}&fmt=json'
@@ -69,7 +110,6 @@ def fetch_historical_data(symbol, api_token, start_date, end_date):
         print(f"Failed to fetch data for {symbol}: {response.status_code}, {response.text}")
         return pd.DataFrame()
 
-
 def analyze_symbol(symbol, api_token):
     current_date = datetime.now()
     # Adjusting dates to the nearest previous business day
@@ -78,6 +118,7 @@ def analyze_symbol(symbol, api_token):
     start_of_year = get_previous_business_day(current_date.replace(month=1, day=1))
     start_of_5_days = get_previous_business_day(current_date - BDay(5))
     
+
     with ThreadPoolExecutor() as executor:
         current_price_future = executor.submit(fetch_current_price, symbol, api_token)
         previous_close_price_future = executor.submit(fetch_previous_close_price, symbol, api_token)
@@ -126,7 +167,6 @@ def create_dataframe(symbols, api_token):
     df = pd.DataFrame(data, columns=['Symbol', 'Current Price', 'Today %', '5-Day %', 'MTD %', 'QTD %', 'YTD %'])
     return df
 
-
 # Custom CSS for a darker gray sidebar
 st.markdown(
     """
@@ -170,32 +210,8 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# Load the BBands Excel file
-bbands_excel_file_path = 'BBands_ETFs_2024-09-03.xlsx'
-bbands_sheets_dict = pd.read_excel(bbands_excel_file_path, sheet_name=None)
-
-# Load the ROC/STDDEV Excel file
-roc_stddev_excel_file_path = 'ROCSTDEV_ETF_Analysis_2024-09-03_sheets.xlsx'
-roc_stddev_sheets_dict = pd.read_excel(roc_stddev_excel_file_path, sheet_name=None)
-
-z_score_excel_file_path = 'Z_Score_Results_2024-09-03_GHub.xlsx'
-z_score_sheets_dict = pd.read_excel(z_score_excel_file_path, sheet_name=None)
-
-# Function to extract date from the filename
-def extract_date_from_filename(filename):
-    match = re.search(r'\d{4}-\d{2}-\d{2}', filename)
-    if match:
-        return datetime.strptime(match.group(), '%Y-%m-%d').strftime('%B %d, %Y')
-    return 'Unknown Date'
-
-bbands_date = extract_date_from_filename(bbands_excel_file_path)
-roc_stddev_date = extract_date_from_filename(roc_stddev_excel_file_path)
-zscore_date = extract_date_from_filename(z_score_excel_file_path)
-
-
-
 # Load the image from a URL or a local file
-image_url = "momento_logo.png"  # Update this URL
+image_url = "C:\\Users\\jabo\\Desktop\\finance_courses\\momento_logo.png"  # Update this URL
 image = Image.open(image_url)
 
 # Display the logo in the sidebar
@@ -208,22 +224,18 @@ selected_analysis = st.sidebar.radio("Analysis Type", ["BBands analysis", "Secto
 # Sidebar for sector/subsector selection based on analysis type
 if selected_analysis == "BBands analysis":
     st.sidebar.title("Select Sector")
-    selected_sector = st.sidebar.radio("Sectors", list(bbands_sheets_dict.keys()))
-    df = bbands_sheets_dict[selected_sector]
-    
-    #if selection_type == "Sector":
-        #selected_sector = st.sidebar.radio("Sectors", sectors)
-        #df = create_dataframe([selected_sector], api_token)
-    #else:
-        #selected_subsector = st.sidebar.radio("Subsectors", subsectors)
-        #df = create_dataframe([selected_subsector], api_token)
-# New Section: Z Score Analysis
+    selected_sector = st.sidebar.radio("Sectors", real_sectors + real_subsectors)
+    df = fetch_bbands_data_from_firestore(selected_sector)
 
 elif selected_analysis == "ROC/STDDEV analysis":
-    st.sidebar.title("Select Subsector")
-    selected_subsector = st.sidebar.radio("Subsectors", list(roc_stddev_sheets_dict.keys()))
-    df = roc_stddev_sheets_dict[selected_subsector]
+    st.sidebar.title("Select Performance Type")
+    performance_type = st.sidebar.radio("Performance Type", ["Sector_Performers", "Subsector_Performers"])
+    df = fetch_roc_stddev_data_from_firestore(performance_type)
 
+elif selected_analysis == "Z Score Analysis":
+    st.sidebar.title("Select Score Type")
+    score_type = st.sidebar.radio("Score Type", ["Top_Sectors", "Top_Subsectors"])
+    df = fetch_z_score_data_from_firestore(score_type)
 
 # Color mapping for different bands (for BBands analysis)
 color_map = {
@@ -255,7 +267,6 @@ def generate_tradingview_embed(ticker):
     <iframe src="https://s.tradingview.com/widgetembed/?frameElementId=tradingview_c2a09&symbol={ticker}&interval=D&hidesidetoolbar=1&symboledit=1&saveimage=1&toolbarbg=f1f3f6&studies=[%7B%22id%22%3A%22BB%40tv-basicstudies%22%2C%22inputs%22%3A%5B20%2C2%5D%7D]&theme=Dark&style=1&timezone=exchange&withdateranges=1&hideideas=1&studies_overrides={{}}&overrides={{}}&enabled_features=[]&disabled_features=[]&locale=en&utm_source=www.tradingview.com&utm_medium=widget&utm_campaign=chart&utm_term={ticker}" width="100%" height="600" frameborder="0" allowfullscreen></iframe>
     """
 
-
 # Color mapping for percentage columns
 def color_percentages(val):
     if pd.isna(val):
@@ -265,13 +276,12 @@ def color_percentages(val):
     else:
         return 'background-color: lightgreen; color: black'
 
-
 # Main code
 if selected_analysis == "BBands analysis":
     sorted_df = prioritize_bands(df)
     highlighted_df = sorted_df.style.applymap(highlight_cells, subset=['Crossing Daily Band', 'Crossing Weekly Band', 'Crossing Monthly Band'])
 
-    st.title(f"{selected_sector} - Bollinger Bands Analysis - {bbands_date}")
+    st.title(f"{selected_sector} - Bollinger Bands Analysis")
     st.dataframe(highlighted_df, height=500, width=1000)
 
     # Display chart and data for selected symbol
@@ -299,13 +309,8 @@ if selected_analysis == "BBands analysis":
     else:
         st.write(f"Could not fetch data for {selected_ticker}. Please try again later.")
 
-# Z Score Analysis Section
 elif selected_analysis == "Z Score Analysis":
-    st.sidebar.title(f"Select ETF for Z Score Analysis")
-    selected_etf = st.sidebar.radio("ETFs", list(z_score_sheets_dict.keys()))
-    df = z_score_sheets_dict[selected_etf]
-    
-    st.title(f"{selected_etf} - Z Score Analysis (52 W) - {zscore_date} ")
+    st.title(f"{score_type} - Z Score Analysis")
     st.dataframe(df, height=500, width=1000)
 
     # Display chart and data for selected ETF symbol
@@ -333,9 +338,8 @@ elif selected_analysis == "Z Score Analysis":
     else:
         st.write(f"Could not fetch data for {selected_ticker}. Please try again later.")
 
-    
 elif selected_analysis == "ROC/STDDEV analysis":
-    st.title(f"{selected_subsector} - ROC/STDDEV Analysis - {roc_stddev_date}")
+    st.title(f"{performance_type} - ROC/STDDEV Analysis")
     st.dataframe(df, height=500, width=1000)
 
     # Display chart and data for selected symbol
@@ -365,7 +369,6 @@ elif selected_analysis == "ROC/STDDEV analysis":
 
     # Create the scatter plot for ROC/STDDEV vs RSI
     if 'ROC/STDDEV' in df.columns and 'RSI' in df.columns:
-
         # Calculate min and max for x and y axes
         x_min, x_max = df['ROC/STDDEV'].min(), df['ROC/STDDEV'].max()
         y_min, y_max = df['RSI'].min(), df['RSI'].max()
@@ -414,9 +417,7 @@ elif selected_analysis == "Sector Overall Performance":
     st.title("Sector and Subsector Performance")
 
     tab1, tab2 = st.tabs(["Sector Performance", "Subsector Performance"])
-    # Round the percentage columns to two decimal places
     
-
     with tab1:
         st.subheader("Sector DataFrame")
         sector_df_styled = sector_df.style.applymap(color_percentages, subset=['Today %', '5-Day %', 'MTD %', 'QTD %', 'YTD %'])

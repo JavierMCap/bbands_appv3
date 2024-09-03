@@ -17,7 +17,8 @@ def get_previous_business_day(date):
     """
     Adjust the date to the nearest previous business day if it falls on a non-business day (weekend or holiday).
     """
-    while date not in pd.bdate_range(date, date, holidays=USFederalHolidayCalendar().holidays()):
+    holidays = USFederalHolidayCalendar().holidays()
+    while not pd.bdate_range(date, date, holidays=holidays).size:
         date -= BDay(1)
     return date
 

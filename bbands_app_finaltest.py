@@ -61,8 +61,11 @@ def analyze_symbol(symbol, api_token):
     current_date = datetime.now()
     start_of_month = current_date.replace(day=1)
     # Check if the first day is a business day, if not roll forward
-    if not pd.Timestamp(start_of_month).is_busday():
+    # Use bdate_range to check if the date is in a business day range
+    if start_of_month not in pd.bdate_range(start_of_month, start_of_month):
+        # Roll forward to the next business day
         start_of_month = pd.Timestamp(start_of_month) + BDay(1)
+
     start_of_quarter = (current_date - pd.offsets.QuarterBegin(startingMonth=1)).strftime('%Y-%m-%d')
     start_of_year = current_date.replace(month=1, day=1)
     start_of_30_days = current_date - timedelta(days=30)
@@ -168,7 +171,7 @@ bbands_sheets_dict = pd.read_excel(bbands_excel_file_path, sheet_name=None)
 roc_stddev_excel_file_path = 'ROCSTDEV_ETF_Analysis_2024-09-03_sheets.xlsx'
 roc_stddev_sheets_dict = pd.read_excel(roc_stddev_excel_file_path, sheet_name=None)
 
-z_score_excel_file_path = 'Z_Score_Results_2024-08-30_GHub.xlsx'
+z_score_excel_file_path = 'Z_Score_Results_2024-09-03_GHub.xlsx'
 z_score_sheets_dict = pd.read_excel(z_score_excel_file_path, sheet_name=None)
 
 # Function to extract date from the filename

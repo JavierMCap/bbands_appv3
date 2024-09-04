@@ -48,6 +48,7 @@ def fetch_bbands_data_from_firestore(sector):
     collection_ref = db.collection('BBands_Results').document(sector).collection('Symbols')
     docs = collection_ref.stream()
     data = []
+    last_update = None
     for doc in docs:
         doc_dict = doc.to_dict()
         data.append({
@@ -56,27 +57,39 @@ def fetch_bbands_data_from_firestore(sector):
             'Crossing Weekly Band': doc_dict.get('Crossing Weekly Band', ''),
             'Crossing Monthly Band': doc_dict.get('Crossing Monthly Band', '')
         })
-    return pd.DataFrame(data)
+        # Check for last update time
+        last_update = doc.update_time if doc.update_time > last_update else last_update
+
+    return pd.DataFrame(data), last_update
+
 
 def fetch_roc_stddev_data_from_firestore(performance_type):
     collection_ref = db.collection('ROCSTDEV_Results').document(performance_type).collection('Top_Symbols')
     docs = collection_ref.stream()
-    data = [doc.to_dict() for doc in docs]
+    data = []
+    last_update = None
+    for doc in docs:
+        doc_dict = doc.to_dict()
+        data.append(doc_dict)
+        last_update = doc.update_time if doc.update_time > last_update else last_update
+
     df = pd.DataFrame(data)
+    df = df[['Symbol', 'ROC/STDDEV', 'RSI', 'Sector']].sort_values(by='ROC/STDDEV', ascending=False)
     
-    # Reorder columns
-    df = df[['Symbol', 'ROC/STDDEV', 'RSI', 'Sector']]
-    
-    # Sort by ROC/STDDEV in descending order
-    df = df.sort_values(by='ROC/STDDEV', ascending=False)
-    
-    return df
+    return df, last_update
+
 
 def fetch_z_score_data_from_firestore(score_type):
     collection_ref = db.collection('Z_score_results').document(score_type).collection('Records')
     docs = collection_ref.stream()
-    data = [doc.to_dict() for doc in docs]
-    return pd.DataFrame(data)
+    data = []
+    last_update = None
+    for doc in docs:
+        doc_dict = doc.to_dict()
+        data.append(doc_dict)
+        last_update = doc.update_time if doc.update_time > last_update else last_update
+
+    return pd.DataFrame(data), last_update
 
 def fetch_current_price(symbol, api_token):
     url = f'https://eodhd.com/api/real-time/{symbol}.US?api_token={api_token}&fmt=json'
@@ -234,19 +247,35 @@ selected_analysis = st.sidebar.radio("Analysis Type", ["BBands analysis", "Secto
 
 # Sidebar for sector/subsector selection based on analysis type
 if selected_analysis == "BBands analysis":
-    st.sidebar.title("Select Sector")
-    selected_sector = st.sidebar.radio("Sectors", real_sectors + real_subsectors)
-    df = fetch_bbands_data_from_firestore(selected_sector)
+    df, last_update = fetch_bbands_data_from_firestore(selected_sector)
+    st.title(f"{selected_sector} - Bollinger Bands Analysis")
+    
+    # Display the last update time
+    if last_update:
+        st.subheader(f"Last Updated: {last_update.strftime('%Y-%m-%d %H:%M:%S')}")
+
+    sorted_df = prioritize_bands(df)
+    highlighted_df = sorted_df.style.applymap(highlight_cells, subset=['Crossing Daily Band', 'Crossing Weekly Band', 'Crossing Monthly Band'])
+    st.dataframe(highlighted_df, height=500, width=1000)
 
 elif selected_analysis == "ROC/STDDEV analysis":
-    st.sidebar.title("Select Performance Type")
-    performance_type = st.sidebar.radio("Performance Type", ["Sector_Performers", "Subsector_Performers"])
-    df = fetch_roc_stddev_data_from_firestore(performance_type)
+    df, last_update = fetch_roc_stddev_data_from_firestore(performance_type)
+    st.title(f"{performance_type} - ROC/STDDEV Analysis")
+
+    if last_update:
+        st.subheader(f"Last Updated: {last_update.strftime('%Y-%m-%d %H:%M:%S')}")
+    
+    st.dataframe(df, height=500, width=1000)
 
 elif selected_analysis == "Z Score Analysis":
-    st.sidebar.title("Select Score Type")
-    score_type = st.sidebar.radio("Score Type", ["Top_Sectors", "Top_Subsectors"])
-    df = fetch_z_score_data_from_firestore(score_type)
+    df, last_update = fetch_z_score_data_from_firestore(score_type)
+    st.title(f"{score_type} - Z Score Analysis")
+
+    if last_update:
+        st.subheader(f"Last Updated: {last_update.strftime('%Y-%m-%d %H:%M:%S')}")
+    
+    st.dataframe(df, height=500, width=1000)
+
 
 # Color mapping for different bands (for BBands analysis)
 color_map = {

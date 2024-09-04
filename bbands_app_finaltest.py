@@ -62,7 +62,12 @@ def fetch_roc_stddev_data_from_firestore(performance_type):
     collection_ref = db.collection('ROCSTDEV_Results').document(performance_type).collection('Top_Symbols')
     docs = collection_ref.stream()
     data = [doc.to_dict() for doc in docs]
-    return pd.DataFrame(data)
+    df = pd.DataFrame(data)
+    
+    # Reorder columns
+    df = df[['Symbol', 'ROC/STDDEV', 'RSI', 'Sector']]
+    
+    return df
 
 def fetch_z_score_data_from_firestore(score_type):
     collection_ref = db.collection('Z_score_results').document(score_type).collection('Records')

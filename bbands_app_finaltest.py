@@ -67,6 +67,9 @@ def fetch_roc_stddev_data_from_firestore(performance_type):
     # Reorder columns
     df = df[['Symbol', 'ROC/STDDEV', 'RSI', 'Sector']]
     
+    # Sort by ROC/STDDEV in descending order
+    df = df.sort_values(by='ROC/STDDEV', ascending=False)
+    
     return df
 
 def fetch_z_score_data_from_firestore(score_type):

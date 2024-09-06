@@ -28,6 +28,7 @@ real_subsectors = ['GDX', 'UFO', 'KBE', 'AMLP', 'ITA', 'ITB', 'IAK', 'SMH', 'PIN
 
 sectors = ['XLK', 'XLC', 'XLV', 'XLF', 'XLP', 'XLI', 'XLE', 'XLY', 'XLB', 'XLU', 'XLRE', 'MAGS', 'SPY']
 subsectors = ['GDX', 'UFO', 'KBE', 'KRE', 'AMLP', 'ITA', 'ITB', 'IAK', 'SMH', 'PINK', 'XBI', 'NLR']
+ratecut_etfs = ['TUA', 'CROZ', 'GOVZ', 'EDV', 'TLT', 'IEF']
 
 
 def get_previous_business_day(date):
@@ -424,10 +425,11 @@ elif selected_analysis == "ROC/STDDEV analysis":
 elif selected_analysis == "Sector Overall Performance":
     sector_df = create_dataframe(sectors, api_token)
     subsector_df = create_dataframe(subsectors, api_token)
+    ratecut_etfs_df = create_dataframe(ratecut_etfs, api_token)
     
     st.title("Sector and Subsector Performance")
 
-    tab1, tab2 = st.tabs(["Sector Performance", "Subsector Performance"])
+    tab1, tab2, tab3 = st.tabs(["Sector Performance", "Subsector Performance", "Rate Cut Beneficiaries"])
     
     with tab1:
         st.subheader("Sector DataFrame")
@@ -440,3 +442,9 @@ elif selected_analysis == "Sector Overall Performance":
         subsector_df_styled = subsector_df.style.applymap(color_percentages, subset=['Today %', '5-Day %', 'MTD %', 'QTD %', 'YTD %'])
         subsector_df_styled = subsector_df_styled.format({'Current Price': '{:.2f}', 'Today %': '{:.2f}', '5-Day %': '{:.2f}', 'MTD %': '{:.2f}', 'QTD %': '{:.2f}', 'YTD %': '{:.2f}'})
         st.dataframe(subsector_df_styled, height=500, width=1000)
+
+   with tab3:
+        st.subheader("Rate cut beneficiaries + TLT & IEF DataFrame")
+        ratecut_etfs_df_styled = ratecut_etfs_df.style.applymap(color_percentages, subset=['Today %', '5-Day %', 'MTD %', 'QTD %', 'YTD %'])
+        ratecut_etfs_df_styled = ratecut_etfs_df_styled.format({'Current Price': '{:.2f}', 'Today %': '{:.2f}', '5-Day %': '{:.2f}', 'MTD %': '{:.2f}', 'QTD %': '{:.2f}', 'YTD %': '{:.2f}'})
+        st.dataframe(ratecut_etfs_df_styled, height=500, width=1000)

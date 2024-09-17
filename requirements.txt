@@ -1,4 +1,4 @@
-﻿numpy==1.24.0
+numpy==1.24.0
 pandas==2.0.3
 requests==2.32.0
 streamlit==1.24.1
@@ -6,3 +6,4 @@ openpyxl==3.1.2
 altair==5.0.1
 Pillow
 firebase_admin==6.2.0
+streamlit-tags==1.2.6

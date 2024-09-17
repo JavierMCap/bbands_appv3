@@ -11,6 +11,8 @@ import re
 from PIL import Image
 import firebase_admin
 from firebase_admin import credentials, firestore
+from streamlit_tags import st_tags
+
 
 #api key below
 api_token = st.secrets['API_KEY']

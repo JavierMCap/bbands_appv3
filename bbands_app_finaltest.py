@@ -121,6 +121,73 @@ def fetch_historical_data(symbol, api_token, start_date, end_date):
     else:
         print(f"Failed to fetch data for {symbol}: {response.status_code}, {response.text}")
         return pd.DataFrame()
+    
+def calculate_rolling_correlations(symbols, benchmarks, api_token, rolling_window):
+    current_date = datetime.now()
+    start_date = (current_date - timedelta(days=365)).strftime('%Y-%m-%d')
+    end_date = current_date.strftime('%Y-%m-%d')
+    
+    all_symbols = symbols + benchmarks
+    historical_data = {}
+    
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        futures = {executor.submit(fetch_historical_data, symbol, api_token, start_date, end_date): symbol for symbol in all_symbols}
+        for future in as_completed(futures):
+            symbol = futures[future]
+            try:
+                df = future.result()
+                if not df.empty:
+                    df.set_index('date', inplace=True)
+                    historical_data[symbol] = df['adjusted_close']
+            except Exception as e:
+                st.error(f"Error fetching data for {symbol}: {e}")
+
+    combined_df = pd.DataFrame(historical_data)
+    rolling_correlations = combined_df.rolling(window=rolling_window).corr(pairwise=True)
+    
+    results = {}
+    for symbol in symbols:
+        results[symbol] = {}
+        for benchmark in benchmarks:
+            rolling_corr = rolling_correlations.loc[(slice(None), benchmark), symbol].unstack().dropna()
+            rolling_corr = rolling_corr.rename(columns={benchmark: f'{benchmark}_correlation'})
+            results[symbol][benchmark] = rolling_corr
+    
+    return results
+
+def visualize_rolling_correlations(results):
+    charts = []
+    for symbol, benchmarks in results.items():
+        df_list = []
+        for benchmark, df in benchmarks.items():
+            df = df.reset_index()
+            df_list.append(df[['date', f'{benchmark}_correlation']].rename(columns={f'{benchmark}_correlation': 'correlation'}).assign(benchmark=benchmark))
+        
+        combined_df = pd.concat(df_list)
+        
+        highlight = alt.selection_point(fields=['benchmark'], bind='legend')
+        
+        base = alt.Chart(combined_df).mark_line().encode(
+            x='date:T',
+            y='correlation:Q',
+            color='benchmark:N',
+            opacity=alt.condition(highlight, alt.value(1), alt.value(0.2)),
+            tooltip=['date:T', 'correlation:Q', 'benchmark:N']
+        ).properties(
+            title=f'Rolling Correlation of {symbol} with Benchmarks',
+            width=800,
+            height=400
+        ).add_params(
+            highlight
+        )
+
+        charts.append(base)
+    
+    final_chart = alt.vconcat(*charts).resolve_scale(
+        y='shared'
+    )
+    
+    st.altair_chart(final_chart, use_container_width=True)
 
 def analyze_symbol(symbol, api_token):
     current_date = datetime.now()
@@ -223,7 +290,7 @@ st.markdown(
 )
 
 # Load the image from a URL or a local file
-image_url = "momento_logo.png"  # Update this URL
+image_url = r"C:\Users\jabo\Desktop\finance_courses\momento_logo.png"  # Update this URL
 image = Image.open(image_url)
 
 # Display the logo in the sidebar
@@ -231,7 +298,7 @@ st.sidebar.image(image, use_column_width=True)
 
 # Sidebar for analysis selection
 st.sidebar.title("Select Analysis Type")
-selected_analysis = st.sidebar.radio("Analysis Type", ["BBands analysis", "Sector Overall Performance", "ROC/STDDEV analysis", "Z Score Analysis"])
+selected_analysis = st.sidebar.radio("Analysis Type", ["BBands analysis", "Sector Overall Performance", "ROC/STDDEV analysis", "Z Score Analysis", "Trailing Correlation Analysis"])
 
 # Sidebar for sector/subsector selection based on analysis type
 if selected_analysis == "BBands analysis":
@@ -248,6 +315,8 @@ elif selected_analysis == "Z Score Analysis":
     st.sidebar.title("Select Score Type")
     score_type = st.sidebar.radio("Score Type", ["Top_Sectors", "Top_Subsectors"])
     df = fetch_z_score_data_from_firestore(score_type)
+
+
 
 # Color mapping for different bands (for BBands analysis)
 color_map = {
@@ -448,3 +517,17 @@ elif selected_analysis == "Sector Overall Performance":
         ratecut_etfs_df_styled = ratecut_etfs_df.style.applymap(color_percentages, subset=['Today %', '5-Day %', 'MTD %', 'QTD %', 'YTD %'])
         ratecut_etfs_df_styled = ratecut_etfs_df_styled.format({'Current Price': '{:.2f}', 'Today %': '{:.2f}', '5-Day %': '{:.2f}', 'MTD %': '{:.2f}', 'QTD %': '{:.2f}', 'YTD %': '{:.2f}'})
         st.dataframe(ratecut_etfs_df_styled, height=500, width=1000)
+
+# Add Trailing Correlation Analysis
+elif selected_analysis == "Trailing Correlation Analysis":
+
+    # Allow user to input symbols and benchmarks
+    st.write("Enter the symbols and benchmarks for analysis.")
+    symbols = st_tags(label='### Symbols', text='Add symbols (e.g., AAPL)', suggestions=["AAPL", "GOOGL", "TSLA"], maxtags=10)
+    benchmarks = st_tags(label='### Benchmarks', text='Add benchmarks (e.g., SPY)', suggestions=["SPY", "DIA", "QQQ"], maxtags=10)
+
+    rolling_window = st.slider("Rolling Window (Days)", min_value=10, max_value=100, value=30)
+        # Execute upon button click
+    if st.button("Run Trailing Correlation Analysis"):
+        results = calculate_rolling_correlations(symbols, benchmarks, api_token, rolling_window)
+        visualize_rolling_correlations(results)

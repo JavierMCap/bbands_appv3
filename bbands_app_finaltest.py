@@ -494,30 +494,46 @@ elif selected_analysis == "ROC/STDDEV analysis":
 
 # New Section: Sector and Subsector Performance
 elif selected_analysis == "Sector Overall Performance":
-    sector_df = create_dataframe(sectors, api_token)
-    subsector_df = create_dataframe(subsectors, api_token)
-    ratecut_etfs_df = create_dataframe(ratecut_etfs, api_token)
+    # Create a refresh button
+    if st.button("Refresh Data"):
+        # When button is pressed, refresh and rerun the dataframes
+        sector_df = create_dataframe(sectors, api_token)
+        subsector_df = create_dataframe(subsectors, api_token)
+        ratecut_etfs_df = create_dataframe(ratecut_etfs, api_token)
     
     st.title("Sector and Subsector Performance")
 
+    # Create tabs for different dataframes
     tab1, tab2, tab3 = st.tabs(["Sector Performance", "Subsector Performance", "Bonds & Metals Performance"])
-    
+
+    # Sector performance tab
     with tab1:
         st.subheader("Sector DataFrame")
         sector_df_styled = sector_df.style.applymap(color_percentages, subset=['Today %', '5-Day %', 'MTD %', 'QTD %', 'YTD %'])
-        sector_df_styled = sector_df_styled.format({'Current Price': '{:.2f}', 'Today %': '{:.2f}', '5-Day %': '{:.2f}', 'MTD %': '{:.2f}', 'QTD %': '{:.2f}', 'YTD %': '{:.2f}'})
+        sector_df_styled = sector_df_styled.format({
+            'Current Price': '{:.2f}', 'Today %': '{:.2f}', '5-Day %': '{:.2f}', 
+            'MTD %': '{:.2f}', 'QTD %': '{:.2f}', 'YTD %': '{:.2f}'
+        })
         st.dataframe(sector_df_styled, height=500, width=1000)
 
+    # Subsector performance tab
     with tab2:
         st.subheader("Subsector DataFrame")
         subsector_df_styled = subsector_df.style.applymap(color_percentages, subset=['Today %', '5-Day %', 'MTD %', 'QTD %', 'YTD %'])
-        subsector_df_styled = subsector_df_styled.format({'Current Price': '{:.2f}', 'Today %': '{:.2f}', '5-Day %': '{:.2f}', 'MTD %': '{:.2f}', 'QTD %': '{:.2f}', 'YTD %': '{:.2f}'})
+        subsector_df_styled = subsector_df_styled.format({
+            'Current Price': '{:.2f}', 'Today %': '{:.2f}', '5-Day %': '{:.2f}', 
+            'MTD %': '{:.2f}', 'QTD %': '{:.2f}', 'YTD %': '{:.2f}'
+        })
         st.dataframe(subsector_df_styled, height=500, width=1000)
-    
+
+    # Bonds & Metals performance tab
     with tab3:
         st.subheader("Bonds & Metals DataFrame")
         ratecut_etfs_df_styled = ratecut_etfs_df.style.applymap(color_percentages, subset=['Today %', '5-Day %', 'MTD %', 'QTD %', 'YTD %'])
-        ratecut_etfs_df_styled = ratecut_etfs_df_styled.format({'Current Price': '{:.2f}', 'Today %': '{:.2f}', '5-Day %': '{:.2f}', 'MTD %': '{:.2f}', 'QTD %': '{:.2f}', 'YTD %': '{:.2f}'})
+        ratecut_etfs_df_styled = ratecut_etfs_df_styled.format({
+            'Current Price': '{:.2f}', 'Today %': '{:.2f}', '5-Day %': '{:.2f}', 
+            'MTD %': '{:.2f}', 'QTD %': '{:.2f}', 'YTD %': '{:.2f}'
+        })
         st.dataframe(ratecut_etfs_df_styled, height=500, width=1000)
 
 # Add Trailing Correlation Analysis

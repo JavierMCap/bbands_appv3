@@ -30,7 +30,7 @@ real_subsectors = ['GDX', 'UFO', 'KBE', 'AMLP', 'ITA', 'ITB', 'IAK', 'SMH', 'PIN
 
 sectors = ['XLK', 'XLC', 'XLV', 'XLF', 'XLP', 'XLI', 'XLE', 'XLY', 'XLB', 'XLU', 'XLRE', 'MAGS', 'SPY']
 subsectors = ['GDX', 'UFO', 'KBE', 'KRE', 'AMLP', 'ITA', 'ITB', 'IAK', 'SMH', 'PINK', 'XBI', 'NLR']
-ratecut_etfs = ['TUA', 'ZROZ', 'GOVZ', 'EDV', 'TLT', 'IEF']
+ratecut_etfs = ['TUA', 'ZROZ', 'GOVZ', 'EDV', 'TLT', 'IEF', 'GLD', 'SLV', 'COPX']
 
 
 def get_previous_business_day(date):
@@ -500,7 +500,7 @@ elif selected_analysis == "Sector Overall Performance":
     
     st.title("Sector and Subsector Performance")
 
-    tab1, tab2, tab3 = st.tabs(["Sector Performance", "Subsector Performance", "Rate Cut Beneficiaries"])
+    tab1, tab2, tab3 = st.tabs(["Sector Performance", "Subsector Performance", "Bonds & Metals Performance"])
     
     with tab1:
         st.subheader("Sector DataFrame")
@@ -515,7 +515,7 @@ elif selected_analysis == "Sector Overall Performance":
         st.dataframe(subsector_df_styled, height=500, width=1000)
     
     with tab3:
-        st.subheader("Rate cut beneficiaries + TLT & IEF DataFrame")
+        st.subheader("Bonds & Metals DataFrame")
         ratecut_etfs_df_styled = ratecut_etfs_df.style.applymap(color_percentages, subset=['Today %', '5-Day %', 'MTD %', 'QTD %', 'YTD %'])
         ratecut_etfs_df_styled = ratecut_etfs_df_styled.format({'Current Price': '{:.2f}', 'Today %': '{:.2f}', '5-Day %': '{:.2f}', 'MTD %': '{:.2f}', 'QTD %': '{:.2f}', 'YTD %': '{:.2f}'})
         st.dataframe(ratecut_etfs_df_styled, height=500, width=1000)

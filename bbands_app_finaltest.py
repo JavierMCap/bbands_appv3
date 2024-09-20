@@ -509,7 +509,7 @@ elif selected_analysis == "Sector Overall Performance":
     st.title("Sector and Subsector Performance")
 
     # Create tabs for different dataframes
-    tab1, tab2, tab3 = st.tabs(["Sector Performance", "Subsector Performance", "Bonds & Metals Performance"])
+    tab1, tab2, tab3 = st.tabs(["Sector Performance", "Subsector Performance", "Commodities & Metals Performance"])
 
     # Sector performance tab
     with tab1:
@@ -533,7 +533,7 @@ elif selected_analysis == "Sector Overall Performance":
 
     # Bonds & Metals performance tab
     with tab3:
-        st.subheader("Bonds & Metals DataFrame")
+        st.subheader("Commodities & Metals DataFrame")
         ratecut_etfs_df_styled = ratecut_etfs_df.style.applymap(color_percentages, subset=['Today %', '5-Day %', 'MTD %', 'QTD %', 'YTD %'])
         ratecut_etfs_df_styled = ratecut_etfs_df_styled.format({
             'Current Price': '{:.2f}', 'Today %': '{:.2f}', '5-Day %': '{:.2f}', 

@@ -30,7 +30,7 @@ real_subsectors = ['GDX', 'UFO', 'KBE', 'AMLP', 'ITA', 'ITB', 'IAK', 'SMH', 'PIN
 
 sectors = ['XLK', 'XLC', 'XLV', 'XLF', 'XLP', 'XLI', 'XLE', 'XLY', 'XLB', 'XLU', 'XLRE', 'MAGS', 'SPY']
 subsectors = ['GDX', 'UFO', 'KBE', 'KRE', 'AMLP', 'ITA', 'ITB', 'IAK', 'SMH', 'PINK', 'XBI', 'NLR']
-ratecut_etfs = ['TUA', 'ZROZ', 'GOVZ', 'EDV', 'TLT', 'IEF', 'GLD', 'SLV', 'COPX']
+ratecut_etfs = ['GLD', 'SLV', 'COPX', 'IBIT', 'URA', 'CANE', 'XOP', 'UNG']
 
 
 def get_previous_business_day(date):

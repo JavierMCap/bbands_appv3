@@ -499,6 +499,7 @@ elif selected_analysis == "Sector Overall Performance":
     sector_df = create_dataframe(sectors, api_token)
     subsector_df = create_dataframe(subsectors, api_token)
     ratecut_etfs_df = create_dataframe(ratecut_etfs, api_token)
+    macro_etfs_df = create_dataframe(macro_etfs, api_token)
 
     # Create a refresh button
     if st.button("Refresh Data"):
@@ -506,11 +507,12 @@ elif selected_analysis == "Sector Overall Performance":
         sector_df = create_dataframe(sectors, api_token)
         subsector_df = create_dataframe(subsectors, api_token)
         ratecut_etfs_df = create_dataframe(ratecut_etfs, api_token)
+        macro_etfs_df = create_dataframe(macro_etfs, api_token)
     
     st.title("Sector and Subsector Performance")
 
     # Create tabs for different dataframes
-    tab1, tab2, tab3 = st.tabs(["Sector Performance", "Subsector Performance", "Commodities & Metals Performance"])
+    tab1, tab2, tab3, tab4 = st.tabs(["Sector Performance", "Subsector Performance", "Commodities & Metals Performance", "Macro Performance"])
 
     # Sector performance tab
     with tab1:
@@ -541,6 +543,17 @@ elif selected_analysis == "Sector Overall Performance":
             'MTD %': '{:.2f}', 'QTD %': '{:.2f}', 'YTD %': '{:.2f}'
         })
         st.dataframe(ratecut_etfs_df_styled, height=500, width=1000)
+
+
+    # Bonds & Metals performance tab
+    with tab4:
+        st.subheader("Commodities & Metals DataFrame")
+        macro_etfs_df_styled = macro_etfs_df.style.applymap(color_percentages, subset=['Today %', '5-Day %', 'MTD %', 'QTD %', 'YTD %'])
+        macro_etfs_df_styled = macro_etfs_df_styled.format({
+            'Current Price': '{:.2f}', 'Today %': '{:.2f}', '5-Day %': '{:.2f}', 
+            'MTD %': '{:.2f}', 'QTD %': '{:.2f}', 'YTD %': '{:.2f}'
+        })
+        st.dataframe(macro_etfs_df_styled, height=500, width=1000)
 
 
 # Add Trailing Correlation Analysis

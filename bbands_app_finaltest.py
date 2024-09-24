@@ -547,7 +547,7 @@ elif selected_analysis == "Sector Overall Performance":
 
     # Bonds & Metals performance tab
     with tab4:
-        st.subheader("Commodities & Metals DataFrame")
+        st.subheader("Countries DataFrame")
         macro_etfs_df_styled = macro_etfs_df.style.applymap(color_percentages, subset=['Today %', '5-Day %', 'MTD %', 'QTD %', 'YTD %'])
         macro_etfs_df_styled = macro_etfs_df_styled.format({
             'Current Price': '{:.2f}', 'Today %': '{:.2f}', '5-Day %': '{:.2f}', 

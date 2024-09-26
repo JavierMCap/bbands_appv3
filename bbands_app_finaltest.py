@@ -30,7 +30,7 @@ real_subsectors = ['GDX', 'UFO', 'KBE', 'AMLP', 'ITA', 'ITB', 'IAK', 'SMH', 'PIN
 
 sectors = ['XLK', 'XLC', 'XLV', 'XLF', 'XLP', 'XLI', 'XLE', 'XLY', 'XLB', 'XLU', 'XME', 'XLRE', 'MAGS', 'SPY']
 subsectors = ['GDX', 'UFO', 'KBE', 'KRE', 'AMLP', 'ITA', 'ITB', 'IAK', 'SMH', 'PINK', 'XBI', 'NLR']
-ratecut_etfs = ['AAAU', 'SLV', 'COPX', 'IBIT', 'URA', 'CANE', 'XOP', 'UNG', 'WOOD', 'LIT', 'PPLT', 'PALL']
+ratecut_etfs = ['AAAU', 'SLV', 'COPX', 'IBIT', 'URA', 'CANE', 'XOP', 'UNG', 'WOOD', 'LIT', 'PPLT', 'PALL', 'ETHE']
 macro_etfs = ['INDA', 'IDX', 'EWM', 'THD', 'EIS', 'FXI', 'ENZL', 'EZA']
 
 

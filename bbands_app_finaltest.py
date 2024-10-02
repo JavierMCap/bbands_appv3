@@ -80,6 +80,9 @@ def fetch_z_score_data_from_firestore(score_type):
     collection_ref = db.collection('Z_score_results').document(score_type).collection('Records')
     docs = collection_ref.stream()
     data = [doc.to_dict() for doc in docs]
+
+    df = df.sort_values(by='Z-Score', ascending=False)
+
     return pd.DataFrame(data)
 
 def fetch_current_price(symbol, api_token):

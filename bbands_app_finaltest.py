@@ -81,7 +81,6 @@ def fetch_z_score_data_from_firestore(score_type):
     docs = collection_ref.stream()
     data = [doc.to_dict() for doc in docs]
 
-    df = df.sort_values(by='Z-Score', ascending=False)
 
     return pd.DataFrame(data)
 

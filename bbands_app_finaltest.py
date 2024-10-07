@@ -313,7 +313,7 @@ if selected_analysis == "BBands analysis":
 
 elif selected_analysis == "ROC/STDDEV analysis":
     st.sidebar.title("Select Performance Type")
-    performance_type = st.sidebar.radio("Performance Type", ["Sector_Performers", "Subsector_Performers"])
+    performance_type = st.sidebar.radio("Performance Type", ["Sector Performers", "Subsector Performers"])
     df = fetch_roc_stddev_data_from_firestore(performance_type)
 
 elif selected_analysis == "Z Score Analysis":
@@ -425,7 +425,7 @@ elif selected_analysis == "Z Score Analysis":
         st.write(f"Could not fetch data for {selected_ticker}. Please try again later.")
 
 elif selected_analysis == "ROC/STDDEV analysis":
-    st.title(f"{performance_type} - ROC/STDDEV Analysis")
+    st.title(f"Equity {performance_type} - ROC/STDDEV Analysis")
     st.dataframe(df, height=500, width=1000)
 
     # Display chart and data for selected symbol

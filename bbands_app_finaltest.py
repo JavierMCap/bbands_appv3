@@ -168,7 +168,8 @@ def fetch_correlations_from_firestore(ticker, etf_name):
     """
     try:
         # Query the Firestore path for the specific ETF and ticker symbol
-        doc_ref = db.collection('ETF_Correlations').document(etf_name).collection('Symbols').document(ticker)
+        #doc_ref = db.collection('ETF_Correlations').document(etf_name).collection('Symbols').document(ticker)
+        doc_ref = db.collection('ETF_Correlations').document(etf_name).collection(ticker)
         doc = doc_ref.get()
         
         # If the document exists, extract 'Top Correlations' data

@@ -159,27 +159,47 @@ def calculate_rolling_correlations(symbols, benchmarks, api_token, rolling_windo
             results[symbol][benchmark] = rolling_corr
     
     return results
-# Firestore data fetching for correlations
-def fetch_correlations_from_firestore(ticker):
-    collection_ref = db.collection('ETF_Correlations').document(ticker)
-    doc = collection_ref.get()
-    if doc.exists:
-        data = doc.to_dict()
-        return data.get('correlations', {})
-    else:
-        st.error(f"No correlation data found for {ticker}")
-        return {}
+# Firestore data fetching for correlations (with correct structure)
+def fetch_correlations_from_firestore(ticker, etf_name):
+    """
+    Fetch the 'Top Correlations' data for a given ticker symbol from Firestore.
+    The data structure in Firestore is expected to have '5 Highest' and '5 Lowest' correlations
+    inside the 'Top Correlations' field.
+    """
+    try:
+        # Query the Firestore path for the specific ETF and ticker symbol
+        doc_ref = db.collection('ETF_Correlations').document(etf_name).collection('Symbols').document(ticker)
+        doc = doc_ref.get()
+        
+        # If the document exists, extract 'Top Correlations' data
+        if doc.exists:
+            data = doc.to_dict()
+            return data.get('Top Correlations', {})
+        else:
+            st.error(f"No correlation data found for {ticker} in {etf_name}")
+            return None
+    except Exception as e:
+        st.error(f"Error fetching data: {e}")
+        return None
 
 # Extract the 5 highest and 5 lowest correlations
 def extract_top_correlations(correlations):
-    correlations_df = pd.DataFrame(list(correlations.items()), columns=['Stock', 'Correlation'])
-    correlations_df = correlations_df.sort_values(by='Correlation', ascending=True)
+    """
+    Extract the '5 Highest' and '5 Lowest' correlations from the Firestore data.
+    """
+    if not correlations:
+        return pd.DataFrame(), pd.DataFrame()
 
-    lowest_5 = correlations_df.head(5)
-    highest_5 = correlations_df.tail(5)
+    # Extract '5 Highest' and '5 Lowest' correlations
+    highest_5 = correlations.get('5 Highest', {})
+    lowest_5 = correlations.get('5 Lowest', {})
 
-    return lowest_5, highest_5
-    
+    # Convert to DataFrames for easy display in Streamlit
+    highest_5_df = pd.DataFrame(list(highest_5.items()), columns=['Stock', 'Correlation'])
+    lowest_5_df = pd.DataFrame(list(lowest_5.items()), columns=['Stock', 'Correlation'])
+
+    return highest_5_df, lowest_5_df
+
 def visualize_rolling_correlations(results):
     charts = []
     for symbol, benchmarks in results.items():

@@ -421,7 +421,7 @@ if selected_analysis == "BBands analysis":
         st.components.v1.html(chart_html, height=600)
 
     # Fetch correlations for selected ticker from Firestore
-    correlations = fetch_correlations_from_firestore(selected_ticker)
+    correlations = fetch_correlations_from_firestore(selected_ticker, selected_sector)
     
     if correlations:
         lowest_5, highest_5 = extract_top_correlations(correlations)

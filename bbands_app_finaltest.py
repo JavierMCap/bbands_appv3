@@ -159,7 +159,27 @@ def calculate_rolling_correlations(symbols, benchmarks, api_token, rolling_windo
             results[symbol][benchmark] = rolling_corr
     
     return results
+# Firestore data fetching for correlations
+def fetch_correlations_from_firestore(ticker):
+    collection_ref = db.collection('ETF_Correlations').document(ticker)
+    doc = collection_ref.get()
+    if doc.exists:
+        data = doc.to_dict()
+        return data.get('correlations', {})
+    else:
+        st.error(f"No correlation data found for {ticker}")
+        return {}
 
+# Extract the 5 highest and 5 lowest correlations
+def extract_top_correlations(correlations):
+    correlations_df = pd.DataFrame(list(correlations.items()), columns=['Stock', 'Correlation'])
+    correlations_df = correlations_df.sort_values(by='Correlation', ascending=True)
+
+    lowest_5 = correlations_df.head(5)
+    highest_5 = correlations_df.tail(5)
+
+    return lowest_5, highest_5
+    
 def visualize_rolling_correlations(results):
     charts = []
     for symbol, benchmarks in results.items():
@@ -379,6 +399,19 @@ if selected_analysis == "BBands analysis":
     with col1:
         chart_html = generate_tradingview_embed(selected_ticker)
         st.components.v1.html(chart_html, height=600)
+
+    # Fetch correlations for selected ticker from Firestore
+    correlations = fetch_correlations_from_firestore(selected_ticker)
+    
+    if correlations:
+        lowest_5, highest_5 = extract_top_correlations(correlations)
+        
+        # Display the top 5 highest and lowest correlations
+        st.subheader(f"5 Highest Correlations for {selected_ticker}")
+        st.dataframe(highest_5)
+
+        st.subheader(f"5 Lowest Correlations for {selected_ticker}")
+        st.dataframe(lowest_5)
 
     # Perform and display the analysis for the selected ticker
     symbol, current_price, today_percentage, five_day_percentage, mtd_percentage, qtd_percentage, ytd_percentage = analyze_symbol(selected_ticker, api_token)

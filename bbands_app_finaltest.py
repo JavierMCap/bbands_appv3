@@ -159,23 +159,23 @@ def calculate_rolling_correlations(symbols, benchmarks, api_token, rolling_windo
             results[symbol][benchmark] = rolling_corr
     
     return results
-# Firestore data fetching for correlations (with correct structure)
+# Firestore data fetching for correlations (with correct structure: fields as symbols with dictionaries)
 def fetch_correlations_from_firestore(ticker, etf_name):
     """
-    Fetch the 'Top Correlations' data for a given ticker symbol from Firestore.
-    The data structure in Firestore is expected to have '5 Highest' and '5 Lowest' correlations
-    inside the 'Top Correlations' field.
+    Fetch the correlation data for a given ticker symbol from Firestore.
+    The Firestore document contains fields representing each symbol, 
+    and these fields hold the dictionaries for '5 Highest' and '5 Lowest' correlations.
     """
     try:
-        # Query the Firestore path for the specific ETF and ticker symbol
-        doc_ref = db.collection('ETF_Correlations').document(etf_name).collection('Symbols').document(ticker)
-        #doc_ref = db.collection('ETF_Correlations').document(etf_name).collection(ticker)
+        # Query the Firestore path: ETF_Correlations -> {ETF Symbol} -> fields for each ticker
+        doc_ref = db.collection('ETF_Correlations').document(etf_name)
         doc = doc_ref.get()
         
-        # If the document exists, extract 'Top Correlations' data
+        # If the document exists, extract the field for the specific ticker symbol
         if doc.exists:
             data = doc.to_dict()
-            return data.get('Top Correlations', {})
+            # The ticker symbol (e.g., AAPL) is a field in the document
+            return data.get(ticker, {}).get('Top Correlations', {})
         else:
             st.error(f"No correlation data found for {ticker} in {etf_name}")
             return None

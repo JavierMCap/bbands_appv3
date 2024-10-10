@@ -429,10 +429,10 @@ if selected_analysis == "BBands analysis":
         
         # Display the top 5 highest and lowest correlations
         st.subheader(f"5 Highest Correlations for {selected_ticker}")
-        st.dataframe(lowest_5)
+        st.dataframe(highest_5)
 
         st.subheader(f"5 Lowest Correlations for {selected_ticker}")
-        st.dataframe(highest_5)
+        st.dataframe(lowest_5)
     
 
     # Perform and display the analysis for the selected ticker

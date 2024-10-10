@@ -467,18 +467,7 @@ elif selected_analysis == "Z Score Analysis":
     # Perform and display the analysis for the selected ticker
     symbol, current_price, today_percentage, five_day_percentage, mtd_percentage, qtd_percentage, ytd_percentage = analyze_symbol(selected_ticker, api_token)
 
-     # Fetch correlations for selected ticker from Firestore
-    correlations = fetch_correlations_from_firestore(selected_ticker, selected_sector)
-    
-    if correlations:
-        lowest_5, highest_5 = extract_top_correlations(correlations)
-        
-        # Display the top 5 highest and lowest correlations
-        st.subheader(f"5 Highest Correlations for {selected_ticker}")
-        st.dataframe(lowest_5)
 
-        st.subheader(f"5 Lowest Correlations for {selected_ticker}")
-        st.dataframe(highest_5)
 
     if current_price is not None:
         with col2:
@@ -506,18 +495,7 @@ elif selected_analysis == "ROC/STDDEV analysis":
         chart_html = generate_tradingview_embed(selected_ticker)
         st.components.v1.html(chart_html, height=600)
 
-     # Fetch correlations for selected ticker from Firestore
-    correlations = fetch_correlations_from_firestore(selected_ticker, selected_sector)
     
-    if correlations:
-        lowest_5, highest_5 = extract_top_correlations(correlations)
-        
-        # Display the top 5 highest and lowest correlations
-        st.subheader(f"5 Highest Correlations for {selected_ticker}")
-        st.dataframe(lowest_5)
-
-        st.subheader(f"5 Lowest Correlations for {selected_ticker}")
-        st.dataframe(highest_5)
 
     # Perform and display the analysis for the selected ticker
     symbol, current_price, today_percentage, five_day_percentage,  mtd_percentage, qtd_percentage, ytd_percentage = analyze_symbol(selected_ticker, api_token)

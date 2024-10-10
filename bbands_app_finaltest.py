@@ -429,10 +429,10 @@ if selected_analysis == "BBands analysis":
         
         # Display the top 5 highest and lowest correlations
         st.subheader(f"5 Highest Correlations for {selected_ticker}")
-        st.dataframe(highest_5)
+        st.dataframe(lowest_5)
 
         st.subheader(f"5 Lowest Correlations for {selected_ticker}")
-        st.dataframe(lowest_5)
+        st.dataframe(highest_5)
     
 
     # Perform and display the analysis for the selected ticker
@@ -486,9 +486,9 @@ elif selected_analysis == "Z Score Analysis":
     if correlations:
         lowest_5, highest_5 = extract_top_correlations(correlations)
         st.subheader(f"5 Highest Correlations for {selected_ticker}")
-        st.dataframe(highest_5)
-        st.subheader(f"5 Lowest Correlations for {selected_ticker}")
         st.dataframe(lowest_5)
+        st.subheader(f"5 Lowest Correlations for {selected_ticker}")
+        st.dataframe(highest_5)
 
 elif selected_analysis == "ROC/STDDEV analysis":
     st.title(f"{performance_type} - ROC/STDDEV Analysis")
@@ -530,10 +530,10 @@ elif selected_analysis == "ROC/STDDEV analysis":
         
         # Display the top 5 highest and lowest correlations
         st.subheader(f"5 Highest Correlations for {selected_ticker}")
-        st.dataframe(highest_5)
+        st.dataframe(lowest_5)
 
         st.subheader(f"5 Lowest Correlations for {selected_ticker}")
-        st.dataframe(lowest_5)
+        st.dataframe(highest_5)
         
     # Create the scatter plot for ROC/STDDEV vs RSI
     if 'ROC/STDDEV' in df.columns and 'RSI' in df.columns:

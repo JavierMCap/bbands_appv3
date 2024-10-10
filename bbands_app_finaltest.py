@@ -456,7 +456,8 @@ elif selected_analysis == "Z Score Analysis":
 
     # Display chart and data for selected ETF symbol
     selected_ticker = st.selectbox("Select Ticker to View Chart", df['Ticker'])
-
+    selected_sector = df.loc[df['Symbol'] == selected_ticker, 'Sector'].values[0]
+    
     # Generate and display the TradingView chart
     col1, col2 = st.columns([3, 1])
 
@@ -466,7 +467,6 @@ elif selected_analysis == "Z Score Analysis":
 
     # Perform and display the analysis for the selected ticker
     symbol, current_price, today_percentage, five_day_percentage, mtd_percentage, qtd_percentage, ytd_percentage = analyze_symbol(selected_ticker, api_token)
-
 
 
     if current_price is not None:
@@ -480,6 +480,15 @@ elif selected_analysis == "Z Score Analysis":
             st.write(f"**YTD:** {ytd_percentage}%")
     else:
         st.write(f"Could not fetch data for {selected_ticker}. Please try again later.")
+    # Fetch correlations
+    correlations = fetch_correlations_from_firestore(selected_ticker, selected_sector)
+
+    if correlations:
+        lowest_5, highest_5 = extract_top_correlations(correlations)
+        st.subheader(f"5 Highest Correlations for {selected_ticker}")
+        st.dataframe(highest_5)
+        st.subheader(f"5 Lowest Correlations for {selected_ticker}")
+        st.dataframe(lowest_5)
 
 elif selected_analysis == "ROC/STDDEV analysis":
     st.title(f"{performance_type} - ROC/STDDEV Analysis")

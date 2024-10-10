@@ -456,7 +456,7 @@ elif selected_analysis == "Z Score Analysis":
 
     # Display chart and data for selected ETF symbol
     selected_ticker = st.selectbox("Select Ticker to View Chart", df['Ticker'])
-    selected_sector = df.loc[df['Symbol'] == selected_ticker, 'Sector'].values[0]
+    selected_sector = df.loc[df['Ticker'] == selected_ticker, 'Sector'].values[0]
     
     # Generate and display the TradingView chart
     col1, col2 = st.columns([3, 1])

@@ -488,14 +488,15 @@ elif selected_analysis == "ROC/STDDEV analysis":
     # Display chart and data for selected symbol
     selected_ticker = st.selectbox("Select Ticker to View Chart", df['Symbol'])
 
+    # Extract the ETF symbol for the selected ticker from the dataframe
+    selected_sector = df.loc[df['Symbol'] == selected_ticker, 'Sector'].values[0]
+    
     # Generate and display the TradingView chart
     col1, col2 = st.columns([3, 1])
 
     with col1:
         chart_html = generate_tradingview_embed(selected_ticker)
         st.components.v1.html(chart_html, height=600)
-
-    
 
     # Perform and display the analysis for the selected ticker
     symbol, current_price, today_percentage, five_day_percentage,  mtd_percentage, qtd_percentage, ytd_percentage = analyze_symbol(selected_ticker, api_token)
@@ -512,6 +513,19 @@ elif selected_analysis == "ROC/STDDEV analysis":
     else:
         st.write(f"Could not fetch data for {selected_ticker}. Please try again later.")
 
+        # Fetch correlations for selected ticker from Firestore
+    correlations = fetch_correlations_from_firestore(selected_ticker, selected_sector)
+    
+    if correlations:
+        lowest_5, highest_5 = extract_top_correlations(correlations)
+        
+        # Display the top 5 highest and lowest correlations
+        st.subheader(f"5 Highest Correlations for {selected_ticker}")
+        st.dataframe(highest_5)
+
+        st.subheader(f"5 Lowest Correlations for {selected_ticker}")
+        st.dataframe(lowest_5)
+        
     # Create the scatter plot for ROC/STDDEV vs RSI
     if 'ROC/STDDEV' in df.columns and 'RSI' in df.columns:
         # Calculate min and max for x and y axes

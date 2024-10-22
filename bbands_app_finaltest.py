@@ -229,6 +229,37 @@ def fetch_z_score_data_from_firestore(score_type):
 
     return pd.DataFrame(data)
 
+# Fetch historical data for a given symbol
+def fetch_data(symbol, api_key):
+    url = f'https://eodhistoricaldata.com/api/eod/{symbol}.US?api_token={api_key}&period=d&fmt=json'
+    response = requests.get(url)
+    if response.status_code == 200:
+        try:
+            data = response.json()
+            return symbol, pd.DataFrame(data)
+        except ValueError as e:
+            print(f"Error decoding JSON for {symbol}: {e}")
+            return symbol, pd.DataFrame()
+    else:
+        print(f"Failed to fetch data for {symbol}: {response.status_code}")
+        return symbol, pd.DataFrame()
+
+# Fetch real-time data for a given symbol
+def fetch_real_time_price(symbol, api_key):
+    url = f'https://eodhd.com/api/real-time/{symbol}.US?api_token={api_key}&fmt=json'
+    response = requests.get(url)
+    if response.status_code == 200:
+        try:
+            data = response.json()
+            return data['close']  # Assuming 'close' represents the latest real-time price
+        except ValueError as e:
+            print(f"Error decoding real-time JSON for {symbol}: {e}")
+            return None
+    else:
+        print(f"Failed to fetch real-time data for {symbol}: {response.status_code}")
+        return None
+
+
 def fetch_current_price(symbol, api_token):
     url = f'https://eodhd.com/api/real-time/{symbol}.US?api_token={api_token}&fmt=json'
     response = requests.get(url)

@@ -97,6 +97,66 @@ def calculate_consecutive_appearances(df):
     
     return consecutive_df
 
+# Function to calculate the return using the adjusted close of one period before the signal date
+def calculate_consecutive_returns(symbol, first_appearance_date, df, api_key):
+    # Ensure the historical data is sorted by date in ascending order
+    df = df.sort_values(by='date')
+    
+    # Find the index of the first_appearance_date
+    signal_index = df.index[df['date'] == first_appearance_date].tolist()
+    
+    if signal_index:
+        signal_index = signal_index[0]  # Get the index of the first appearance date
+        
+        # Ensure there's a row before the signal date for the price_at_signal
+        if signal_index > 0:
+            # Get the adjusted close price of one period before the signal date
+            price_at_signal = df.iloc[signal_index - 1]['adjusted_close']
+            
+            # Fetch the real-time price using the API
+            current_price = fetch_real_time_price(symbol, api_key)
+            
+            if current_price:
+                # Calculate the return
+                consecutive_day_return = ((current_price - price_at_signal) / price_at_signal) * 100
+
+                # Collect the required data
+                return {
+                    'symbol': symbol,
+                    'date_signaled': first_appearance_date,
+                    'price_at_signal': price_at_signal,
+                    'current_price': current_price,
+                    'consecutive_day_return': consecutive_day_return
+                }
+    
+    # If no valid signal date or no previous price available, return None
+    return None
+
+# Main process to calculate returns for consecutive appearances
+def process_consecutive_returns(sector_df, subsector_df, api_key):
+    # Merge and filter the consecutive appearance data
+    combined_df = merge_consecutive_dfs(sector_df, subsector_df)
+    
+    results = []
+    
+    # Loop over each symbol and fetch the data
+    for idx, row in combined_df.iterrows():
+        symbol = row['Symbol']
+        first_appearance_date = row['first_appearance_date']
+        
+        if first_appearance_date != "N/A":
+            # Fetch historical data for the symbol
+            _, historical_data = fetch_data(symbol, api_key)
+            
+            if not historical_data.empty:
+                # Calculate the return based on the adjusted close one period before the signal date
+                result = calculate_consecutive_returns(symbol, first_appearance_date, historical_data, api_key)
+                if result:
+                    results.append(result)
+    
+    # Convert results to DataFrame
+    return pd.DataFrame(results)
+
 
 # Firestore data fetching functions
 def fetch_bbands_data_from_firestore(sector):

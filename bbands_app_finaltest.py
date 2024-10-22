@@ -35,6 +35,9 @@ subsectors = ['GDX', 'UFO', 'KBE', 'KRE', 'AMLP', 'ITA', 'ITB', 'IAK', 'SMH', 'P
 ratecut_etfs = ['AAAU', 'SLV', 'COPX', 'URA', 'CANE', 'XOP', 'UNG', 'WOOD', 'LIT', 'PPLT', 'PALL', 'SLX', 'BNO', 'IBIT', 'SILJ', 'URNJ']
 macro_etfs = ['INDA', 'IDX', 'EWM', 'THD', 'EIS', 'FXI', 'ENZL', 'EZA', 'EWY','EWU', 'CHIQ']
 
+# Function to remove rows with any null values
+def remove_nulls(df):
+    return df.dropna()
 
 def get_previous_business_day(date):
     """

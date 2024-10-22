@@ -63,6 +63,40 @@ def load_csv_from_s3(s3_client, bucket, file_key):
     df = pd.read_csv(StringIO(csv_content))
     return df
     
+# Function to calculate consecutive appearances and track the first appearance date
+def calculate_consecutive_appearances(df):
+    # Extract date columns and sort them in descending order
+    date_columns = sorted([col for col in df.columns if col != 'Rank'], reverse=True)
+    
+    # Get all unique symbols, excluding NaN
+    symbols = pd.unique(df[date_columns].values.ravel('K'))
+    symbols = [symbol for symbol in symbols if pd.notna(symbol)]
+    
+    # Initialize a dictionary to store counts and first appearance dates
+    consecutive_counts = {}
+    first_appearance_dates = {}
+
+    # Iterate over each symbol
+    for symbol in symbols:
+        count = 0
+        first_appearance = None
+        for date in date_columns:
+            # Check if the symbol appears on this date
+            if symbol in df[date].values:
+                count += 1
+                first_appearance = date  # Track the first date it appears
+            else:
+                break  # Stop counting when the symbol does not appear on a date
+        
+        consecutive_counts[symbol] = count
+        first_appearance_dates[symbol] = first_appearance if count > 0 else "N/A"
+
+    # Convert the dictionary to a DataFrame
+    consecutive_df = pd.DataFrame(list(consecutive_counts.items()), columns=['Symbol', 'consecutive_appearance'])
+    consecutive_df['first_appearance_date'] = consecutive_df['Symbol'].map(first_appearance_dates)
+    
+    return consecutive_df
+
 
 # Firestore data fetching functions
 def fetch_bbands_data_from_firestore(sector):

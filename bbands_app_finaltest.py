@@ -47,6 +47,18 @@ def get_previous_business_day(date):
     
     return date
 
+
+# Function to load CSV from S3 and convert to DataFrame
+def load_csv_from_s3(s3_client, bucket, file_key):
+    """
+    Load CSV from S3 bucket and convert it to a pandas DataFrame
+    """
+    obj = s3_client.get_object(Bucket=bucket, Key=file_key)
+    csv_content = obj['Body'].read().decode('utf-8')
+    df = pd.read_csv(StringIO(csv_content))
+    return df
+    
+
 # Firestore data fetching functions
 def fetch_bbands_data_from_firestore(sector):
     collection_ref = db.collection('BBands_Results').document(sector).collection('Symbols')
@@ -354,8 +366,50 @@ if selected_analysis == "BBands analysis":
 
 elif selected_analysis == "ROC/STDDEV analysis":
     st.sidebar.title("Select Performance Type")
-    performance_type = st.sidebar.radio("Performance Type", ["Sector_Performers", "Subsector_Performers"])
-    df = fetch_roc_stddev_data_from_firestore(performance_type)
+    
+    # Add "Consecutive_Appearances" option
+    performance_type = st.sidebar.radio("Performance Type", ["Sector_Performers", "Subsector_Performers", "Consecutive_Appearances"])
+    
+    if performance_type in ["Sector_Performers", "Subsector_Performers"]:
+        # Fetch data from Firestore for Sector/Subsector Performers
+        df = fetch_roc_stddev_data_from_firestore(performance_type)
+    
+    elif performance_type == "Consecutive_Appearances":
+        # Load the S3 credentials and paths from st.secrets
+        aws_access_key = st.secrets['aws_access_key']
+        aws_secret_key = st.secrets['aws_secret_key']
+        region_name = st.secrets['region_name']
+        bucket_name = st.secrets['bucket_name']
+        sector_csv_path = st.secrets['sector_csv_path']
+        subsector_csv_path = st.secrets['subsector_csv_path']
+        
+        # Set up the S3 client
+        s3 = boto3.client(
+            's3',
+            aws_access_key_id=aws_access_key,
+            aws_secret_access_key=aws_secret_key,
+            region_name=region_name
+        )
+        
+        # Load the CSV files from S3
+        sector_df = load_csv_from_s3(s3, bucket_name, sector_csv_path)
+        subsector_df = load_csv_from_s3(s3, bucket_name, subsector_csv_path)
+        
+        # Remove nulls and calculate consecutive appearances
+        sector_df_clean = remove_nulls(sector_df)
+        sector_consecutive_df = calculate_consecutive_appearances(sector_df_clean)
+        subsector_consecutive_df = calculate_consecutive_appearances(subsector_df)
+        
+        # Process consecutive returns
+        api_key = st.secrets['API_KEY']  # Use the API key stored in st.secrets
+        df = process_consecutive_returns(sector_consecutive_df, subsector_consecutive_df, api_key)
+        
+        # Sort the DataFrame by consecutive day return
+        df = df.sort_values(['consecutive_day_return'], ascending=[False])
+
+    else:
+        st.write("Invalid performance type selected.")
+
 
 elif selected_analysis == "Z Score Analysis":
     st.sidebar.title("Select Score Type")
@@ -492,90 +546,98 @@ elif selected_analysis == "Z Score Analysis":
 
 elif selected_analysis == "ROC/STDDEV analysis":
     st.title(f"{performance_type} - ROC/STDDEV Analysis")
-    st.dataframe(df, height=500, width=1000)
 
-    # Display chart and data for selected symbol
-    selected_ticker = st.selectbox("Select Ticker to View Chart", df['Symbol'])
-
-    # Extract the ETF symbol for the selected ticker from the dataframe
-    selected_sector = df.loc[df['Symbol'] == selected_ticker, 'Sector'].values[0]
-    
-    # Generate and display the TradingView chart
-    col1, col2 = st.columns([3, 1])
-
-    with col1:
-        chart_html = generate_tradingview_embed(selected_ticker)
-        st.components.v1.html(chart_html, height=600)
-
-    # Perform and display the analysis for the selected ticker
-    symbol, current_price, today_percentage, five_day_percentage,  mtd_percentage, qtd_percentage, ytd_percentage = analyze_symbol(selected_ticker, api_token)
-
-    if current_price is not None:
-        with col2:
-            st.subheader(f"{selected_ticker}")
-            st.write(f"**Current Price:** {current_price}")
-            st.write(f"**Today:** {today_percentage}%")
-            st.write(f"**5-Day:** {five_day_percentage}%")
-            st.write(f"**MTD:** {mtd_percentage}%")
-            st.write(f"**QTD:** {qtd_percentage}%")
-            st.write(f"**YTD:** {ytd_percentage}%")
+    # Check if it's the "Consecutive Appearances" case
+    if performance_type == "Consecutive_Appearances":
+        # Display the DataFrame with consecutive appearances sorted by returns
+        st.dataframe(df, height=500, width=1000)
     else:
-        st.write(f"Could not fetch data for {selected_ticker}. Please try again later.")
+        # Display the ROC/STDDEV analysis DataFrame
+        st.dataframe(df, height=500, width=1000)
+
+        # Display chart and data for selected symbol
+        selected_ticker = st.selectbox("Select Ticker to View Chart", df['Symbol'])
+
+        # Extract the ETF symbol for the selected ticker from the dataframe
+        selected_sector = df.loc[df['Symbol'] == selected_ticker, 'Sector'].values[0]
+        
+        # Generate and display the TradingView chart
+        col1, col2 = st.columns([3, 1])
+
+        with col1:
+            chart_html = generate_tradingview_embed(selected_ticker)
+            st.components.v1.html(chart_html, height=600)
+
+        # Perform and display the analysis for the selected ticker
+        symbol, current_price, today_percentage, five_day_percentage, mtd_percentage, qtd_percentage, ytd_percentage = analyze_symbol(selected_ticker, api_token)
+
+        if current_price is not None:
+            with col2:
+                st.subheader(f"{selected_ticker}")
+                st.write(f"**Current Price:** {current_price}")
+                st.write(f"**Today:** {today_percentage}%")
+                st.write(f"**5-Day:** {five_day_percentage}%")
+                st.write(f"**MTD:** {mtd_percentage}%")
+                st.write(f"**QTD:** {qtd_percentage}%")
+                st.write(f"**YTD:** {ytd_percentage}%")
+        else:
+            st.write(f"Could not fetch data for {selected_ticker}. Please try again later.")
 
         # Fetch correlations for selected ticker from Firestore
-    correlations = fetch_correlations_from_firestore(selected_ticker, selected_sector)
-    
-    if correlations:
-        lowest_5, highest_5 = extract_top_correlations(correlations)
+        correlations = fetch_correlations_from_firestore(selected_ticker, selected_sector)
         
-        # Display the top 5 highest and lowest correlations
-        st.subheader(f"5 Highest Correlations for {selected_ticker}")
-        st.dataframe(lowest_5)
+        if correlations:
+            lowest_5, highest_5 = extract_top_correlations(correlations)
+            
+            # Display the top 5 highest and lowest correlations
+            st.subheader(f"5 Highest Correlations for {selected_ticker}")
+            st.dataframe(lowest_5)
 
-        st.subheader(f"5 Lowest Correlations for {selected_ticker}")
-        st.dataframe(highest_5)
-        
-    # Create the scatter plot for ROC/STDDEV vs RSI
-    if 'ROC/STDDEV' in df.columns and 'RSI' in df.columns:
-        # Calculate min and max for x and y axes
-        x_min, x_max = df['ROC/STDDEV'].min(), df['ROC/STDDEV'].max()
-        y_min, y_max = df['RSI'].min(), df['RSI'].max()
-        
-        # Create scatter plot with dynamic domain
-        scatter = alt.Chart(df).mark_circle(size=60).encode(
-            x=alt.X('ROC/STDDEV', scale=alt.Scale(domain=[x_min, x_max]), title='ROC/STDDEV'),
-            y=alt.Y('RSI', scale=alt.Scale(domain=[y_min, y_max]), title='RSI'),
-            color=alt.Color('Symbol', legend=None),
-            tooltip=['Symbol', 'ROC/STDDEV', 'RSI']
-        ).interactive()
-        
-        # Add text labels to the points
-        text = scatter.mark_text(
-            align='left',
-            baseline='middle',
-            dx=7,
-            fontSize=10
-        ).encode(
-            text='Symbol'
-        )
-        
-        # Combine the scatter plot and text
-        chart = scatter + text
-        
-        chart = chart.properties(
-            title='ROC/STDDEV vs RSI Scatter Plot'
-        ).configure_axis(
-            grid=True
-        ).configure_title(
-            fontSize=20
-        ).configure_legend(
-            labelFontSize=12,
-            titleFontSize=14
-        )
-        
-        st.altair_chart(chart, use_container_width=True)
-    else:
-        st.write("The dataframe does not contain the required columns for the scatter plot.")
+            st.subheader(f"5 Lowest Correlations for {selected_ticker}")
+            st.dataframe(highest_5)
+            
+        # Create the scatter plot for ROC/STDDEV vs RSI
+        if 'ROC/STDDEV' in df.columns and 'RSI' in df.columns:
+            # Calculate min and max for x and y axes
+            x_min, x_max = df['ROC/STDDEV'].min(), df['ROC/STDDEV'].max()
+            y_min, y_max = df['RSI'].min(), df['RSI'].max()
+            
+            # Create scatter plot with dynamic domain
+            scatter = alt.Chart(df).mark_circle(size=60).encode(
+                x=alt.X('ROC/STDDEV', scale=alt.Scale(domain=[x_min, x_max]), title='ROC/STDDEV'),
+                y=alt.Y('RSI', scale=alt.Scale(domain=[y_min, y_max]), title='RSI'),
+                color=alt.Color('Symbol', legend=None),
+                tooltip=['Symbol', 'ROC/STDDEV', 'RSI']
+            ).interactive()
+            
+            # Add text labels to the points
+            text = scatter.mark_text(
+                align='left',
+                baseline='middle',
+                dx=7,
+                fontSize=10
+            ).encode(
+                text='Symbol'
+            )
+            
+            # Combine the scatter plot and text
+            chart = scatter + text
+            
+            chart = chart.properties(
+                title='ROC/STDDEV vs RSI Scatter Plot'
+            ).configure_axis(
+                grid=True
+            ).configure_title(
+                fontSize=20
+            ).configure_legend(
+                labelFontSize=12,
+                titleFontSize=14
+            )
+            
+            st.altair_chart(chart, use_container_width=True)
+        else:
+            st.write("The dataframe does not contain the required columns for the scatter plot.")
+
 
 # New Section: Sector and Subsector Performance
 elif selected_analysis == "Sector Overall Performance":

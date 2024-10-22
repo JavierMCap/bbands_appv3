@@ -156,6 +156,40 @@ def process_consecutive_returns(sector_df, subsector_df, api_key):
     
     # Convert results to DataFrame
     return pd.DataFrame(results)
+# Merging the sector and subsector dataframes based on Symbol
+def merge_consecutive_dfs(sector_df, subsector_df):
+    # Filter rows where consecutive appearances > 0
+    sector_df = sector_df[sector_df['consecutive_appearance'] > 0]
+    subsector_df = subsector_df[subsector_df['consecutive_appearance'] > 0]
+    
+    # Merge the two dataframes
+    combined_df = pd.concat([sector_df, subsector_df]).drop_duplicates(subset='Symbol').reset_index(drop=True)
+    return combined_df
+
+# Main process
+def process_consecutive_returns(sector_df, subsector_df, api_key):
+    # Merge and filter the consecutive appearance data
+    combined_df = merge_consecutive_dfs(sector_df, subsector_df)
+    
+    results = []
+    
+    # Loop over each symbol and fetch the data
+    for idx, row in combined_df.iterrows():
+        symbol = row['Symbol']
+        first_appearance_date = row['first_appearance_date']
+        
+        if first_appearance_date != "N/A":
+            # Fetch historical data for the symbol
+            _, historical_data = fetch_data(symbol, api_key)
+            
+            if not historical_data.empty:
+                # Calculate the return based on the adjusted close one period before the signal date
+                result = calculate_consecutive_returns(symbol, first_appearance_date, historical_data, api_key)
+                if result:
+                    results.append(result)
+    
+    # Convert results to DataFrame
+    return pd.DataFrame(results)
 
 
 # Firestore data fetching functions

@@ -831,47 +831,62 @@ elif selected_analysis == "Sector Overall Performance":
     # Create tabs for different dataframes
     tab1, tab2, tab3, tab4 = st.tabs(["Sector Performance", "Subsector Performance", "Commodities & Metals Performance", "Macro Performance"])
 
-    # Sector performance tab
+        # Sector performance tab
     with tab1:
         st.subheader("Sector DataFrame")
         sector_df_styled = sector_df.style.applymap(color_percentages, subset=['Today %', '5-Day %', 'MTD %', 'QTD %', 'YTD %'])
         sector_df_styled = sector_df_styled.format({
-            'Current Price': '{:.2f}', 'Today %': '{:.2f}', '5-Day %': '{:.2f}', 
-            'MTD %': '{:.2f}', 'QTD %': '{:.2f}', 'YTD %': '{:.2f}'
+            'Current Price': lambda x: f"{x:.2f}" if pd.notnull(x) else "N/A",
+            'Today %': lambda x: f"{x:.2f}" if pd.notnull(x) else "N/A",
+            '5-Day %': lambda x: f"{x:.2f}" if pd.notnull(x) else "N/A",
+            'MTD %': lambda x: f"{x:.2f}" if pd.notnull(x) else "N/A",
+            'QTD %': lambda x: f"{x:.2f}" if pd.notnull(x) else "N/A",
+            'YTD %': lambda x: f"{x:.2f}" if pd.notnull(x) else "N/A",
         })
         st.dataframe(sector_df_styled, height=500, width=1000)
-
+    
     # Subsector performance tab
     with tab2:
         st.subheader("Subsector DataFrame")
         subsector_df_styled = subsector_df.style.applymap(color_percentages, subset=['Today %', '5-Day %', 'MTD %', 'QTD %', 'YTD %'])
         subsector_df_styled = subsector_df_styled.format({
-            'Current Price': '{:.2f}', 'Today %': '{:.2f}', '5-Day %': '{:.2f}', 
-            'MTD %': '{:.2f}', 'QTD %': '{:.2f}', 'YTD %': '{:.2f}'
+            'Current Price': lambda x: f"{x:.2f}" if pd.notnull(x) else "N/A",
+            'Today %': lambda x: f"{x:.2f}" if pd.notnull(x) else "N/A",
+            '5-Day %': lambda x: f"{x:.2f}" if pd.notnull(x) else "N/A",
+            'MTD %': lambda x: f"{x:.2f}" if pd.notnull(x) else "N/A",
+            'QTD %': lambda x: f"{x:.2f}" if pd.notnull(x) else "N/A",
+            'YTD %': lambda x: f"{x:.2f}" if pd.notnull(x) else "N/A",
         })
         st.dataframe(subsector_df_styled, height=500, width=1000)
-
+    
     # Bonds & Metals performance tab
     with tab3:
         st.subheader("Commodities & Metals DataFrame")
         ratecut_etfs_df_styled = ratecut_etfs_df.style.applymap(color_percentages, subset=['Today %', '5-Day %', 'MTD %', 'QTD %', 'YTD %'])
         ratecut_etfs_df_styled = ratecut_etfs_df_styled.format({
-            'Current Price': '{:.2f}', 'Today %': '{:.2f}', '5-Day %': '{:.2f}', 
-            'MTD %': '{:.2f}', 'QTD %': '{:.2f}', 'YTD %': '{:.2f}'
+            'Current Price': lambda x: f"{x:.2f}" if pd.notnull(x) else "N/A",
+            'Today %': lambda x: f"{x:.2f}" if pd.notnull(x) else "N/A",
+            '5-Day %': lambda x: f"{x:.2f}" if pd.notnull(x) else "N/A",
+            'MTD %': lambda x: f"{x:.2f}" if pd.notnull(x) else "N/A",
+            'QTD %': lambda x: f"{x:.2f}" if pd.notnull(x) else "N/A",
+            'YTD %': lambda x: f"{x:.2f}" if pd.notnull(x) else "N/A",
         })
         st.dataframe(ratecut_etfs_df_styled, height=500, width=1000)
-
-
-    # Bonds & Metals performance tab
+    
+    # Countries performance tab
     with tab4:
         st.subheader("Countries DataFrame")
         macro_etfs_df_styled = macro_etfs_df.style.applymap(color_percentages, subset=['Today %', '5-Day %', 'MTD %', 'QTD %', 'YTD %'])
         macro_etfs_df_styled = macro_etfs_df_styled.format({
-            'Current Price': '{:.2f}', 'Today %': '{:.2f}', '5-Day %': '{:.2f}', 
-            'MTD %': '{:.2f}', 'QTD %': '{:.2f}', 'YTD %': '{:.2f}'
+            'Current Price': lambda x: f"{x:.2f}" if pd.notnull(x) else "N/A",
+            'Today %': lambda x: f"{x:.2f}" if pd.notnull(x) else "N/A",
+            '5-Day %': lambda x: f"{x:.2f}" if pd.notnull(x) else "N/A",
+            'MTD %': lambda x: f"{x:.2f}" if pd.notnull(x) else "N/A",
+            'QTD %': lambda x: f"{x:.2f}" if pd.notnull(x) else "N/A",
+            'YTD %': lambda x: f"{x:.2f}" if pd.notnull(x) else "N/A",
         })
         st.dataframe(macro_etfs_df_styled, height=500, width=1000)
-
+    
 
 # Add Trailing Correlation Analysis
 elif selected_analysis == "Trailing Correlation Analysis":

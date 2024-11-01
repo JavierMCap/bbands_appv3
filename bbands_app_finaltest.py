@@ -294,14 +294,21 @@ def fetch_historical_data(symbol, api_token, start_date, end_date):
     response = requests.get(url)
     if response.status_code == 200:
         data = response.json()
-        df = pd.DataFrame(data)
-        df['date'] = pd.to_datetime(df['date'])
-        df['adjusted_close'] = pd.to_numeric(df['adjusted_close'], errors='coerce')
-        df.dropna(subset=['adjusted_close'], inplace=True)
-        return df
+        
+        # Check if data is returned and contains the 'date' field
+        if data and isinstance(data, list) and 'date' in data[0]:
+            df = pd.DataFrame(data)
+            df['date'] = pd.to_datetime(df['date'])
+            df['adjusted_close'] = pd.to_numeric(df['adjusted_close'], errors='coerce')
+            df.dropna(subset=['adjusted_close'], inplace=True)
+            return df
+        else:
+            print("Error: 'date' column is missing in the API response data.")
+            return pd.DataFrame()  # Return an empty DataFrame if 'date' is absent
     else:
         print(f"Failed to fetch data for {symbol}: {response.status_code}, {response.text}")
         return pd.DataFrame()
+
     
 def calculate_rolling_correlations(symbols, benchmarks, api_token, rolling_window):
     current_date = datetime.now()

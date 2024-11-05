@@ -28,10 +28,10 @@ db = firestore.client()
 
 
 real_sectors = ['XLK', 'XLC', 'XLV', 'XLF', 'XLP', 'XLI', 'XLE', 'XLY', 'XLB', 'XME', 'XLU', 'XLRE']
-real_subsectors = ['GDX', 'UFO', 'KBE', 'AMLP', 'ITA', 'ITB', 'IAK', 'SMH', 'PINK', 'XBI', 'NLR', 'FXI', 'WGMI', 'JETS']
+real_subsectors = ['GDX', 'UFO', 'KBE', 'AMLP', 'ITA', 'ITB', 'IAK', 'SMH', 'PINK', 'XBI', 'NLR', 'FXI', 'WGMI', 'JETS', 'PEJ']
 
 sectors = ['XLK', 'XLC', 'XLV', 'XLF', 'XLP', 'XLI', 'XLE', 'XLY', 'XLB', 'XLU', 'XME', 'XLRE', 'MAGS', 'SPY']
-subsectors = ['GDX', 'UFO', 'KBE', 'KRE', 'AMLP', 'ITA', 'ITB', 'IAK', 'SMH', 'PINK', 'XBI', 'NLR', 'BOAT', 'WGMI', 'JETS']
+subsectors = ['GDX', 'UFO', 'KBE', 'KRE', 'AMLP', 'ITA', 'ITB', 'IAK', 'SMH', 'PINK', 'XBI', 'NLR', 'BOAT', 'WGMI', 'JETS', 'PEJ']
 ratecut_etfs = ['AAAU', 'SLV', 'COPX', 'URA', 'CANE', 'XOP', 'UNG', 'WOOD', 'LIT', 'PPLT', 'PALL', 'SLX', 'BNO', 'IBIT', 'SILJ', 'URNJ']
 macro_etfs = ['INDA', 'IDX', 'EWM', 'THD', 'EIS', 'FXI', 'ENZL', 'EZA', 'EWY','EWU', 'CHIQ']
 

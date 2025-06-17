@@ -32,8 +32,8 @@ real_subsectors = ['GDX', 'UFO', 'KBE', 'AMLP', 'ITA', 'ITB', 'IAK', 'SMH', 'PIN
 
 sectors = ['XLK', 'XLC', 'XLV', 'XLF', 'XLP', 'XLI', 'XLE', 'XLY', 'XLB', 'XLU', 'XME', 'XLRE', 'MAGS', 'SPY']
 subsectors = ['GDX', 'UFO', 'KBE', 'KRE', 'AMLP', 'ITA', 'ITB', 'IAK', 'SMH', 'PINK', 'XBI', 'NLR', 'BOAT', 'WGMI', 'JETS', 'PEJ', 'QTUM', 'HACK', 'SHLD']
-ratecut_etfs = ['AAAU', 'COPX', 'URA', 'CANE', 'XOP', 'UNG', 'WOOD', 'LIT', 'PPLT', 'PALL', 'SLX', 'BNO', 'IBIT', 'SILJ', 'URNJ', 'SLV', 'ETHA']
-macro_etfs = ['EWA', 'INDA', 'IDX', 'EWM', 'THD', 'EIS', 'FXI', 'ENZL', 'EZA', 'EWY','EWU', 'ARGT', 'EWC', 'EWW', 'UAE', 'EWS', 'GXG', 'EWG', 'EPOL', 'EWD', 'VGK', 'EWO', 'EWP', 'QAT']
+ratecut_etfs = ['AAAU', 'COPX', 'CPER', 'URA', 'CANE', 'XOP', 'UNG', 'WOOD', 'LIT', 'PPLT', 'PALL', 'SLX', 'BNO', 'IBIT', 'SILJ', 'URNJ', 'SLV', 'ETHA', 'USCI']
+macro_etfs = ['EWA', 'INDA', 'IDX', 'EWM', 'THD', 'EIS', 'FXI', 'ENZL', 'EZA', 'EWY','EWU', 'ARGT', 'EWC', 'EWW', 'UAE', 'EWS', 'GXG', 'EWG', 'EPOL', 'EWD', 'VGK', 'EWO', 'EWP', 'QAT', 'EWK']
 
 # Function to remove rows with any null values
 def remove_nulls(df):

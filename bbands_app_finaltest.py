@@ -28,11 +28,11 @@ db = firestore.client()
 
 
 real_sectors = ['XLK', 'XLC', 'XLV', 'XLF', 'XLP', 'XLI', 'XLE', 'XLY', 'XLB', 'XME', 'XLU', 'XLRE']
-real_subsectors = ['GDX', 'UFO', 'KBE', 'AMLP', 'ITA', 'ITB', 'IAK', 'SMH', 'PINK', 'XBI', 'NLR', 'FXI', 'WGMI', 'JETS', 'PEJ']
+real_subsectors = ['GDX', 'UFO', 'KBE', 'AMLP', 'ITA', 'ITB', 'IAK', 'SMH', 'PINK', 'XBI', 'NLR', 'FXI', 'WGMI', 'JETS', 'PEJ', 'REMX']
 
 sectors = ['XLK', 'XLC', 'XLV', 'XLF', 'XLP', 'XLI', 'XLE', 'XLY', 'XLB', 'XLU', 'XME', 'XLRE', 'MAGS', 'SPY']
 subsectors = ['GDX', 'UFO', 'KBE', 'KRE', 'AMLP', 'ITA', 'ITB', 'IAK', 'SMH', 'PINK', 'XBI', 'NLR', 'BOAT', 'WGMI', 'JETS', 'PEJ', 'QTUM', 'HACK', 'SHLD']
-ratecut_etfs = ['AAAU', 'COPX', 'CPER', 'URA', 'CANE', 'XOP', 'UNG', 'WOOD', 'LIT', 'PPLT', 'PALL', 'SLX', 'BNO', 'IBIT', 'SILJ', 'URNJ', 'SLV', 'ETHA', 'USCI']
+ratecut_etfs = ['AAAU', 'COPX', 'CPER', 'URA', 'CANE', 'XOP', 'UNG', 'WOOD', 'LIT', 'PPLT', 'PALL', 'SLX', 'BNO', 'IBIT', 'SILJ', 'URNJ', 'SLV', 'ETHA', 'USCI', 'LITP']
 macro_etfs = ['EWA', 'INDA', 'IDX', 'EWM', 'THD', 'EIS', 'FXI', 'ENZL', 'EZA', 'EWY','EWU', 'ARGT', 'EWC', 'EWW', 'UAE', 'EWS', 'GXG', 'EWG', 'EPOL', 'EWD', 'VGK', 'EWO', 'EWP', 'QAT', 'EWK', 'EWT', 'GREK', 'EWH', 'EWN', 'ECH', 'EPU']
 
 # Function to remove rows with any null values

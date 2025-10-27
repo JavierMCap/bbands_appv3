@@ -33,7 +33,7 @@ real_subsectors = ['GDX', 'UFO', 'KBE', 'AMLP', 'ITA', 'ITB', 'IAK', 'SMH', 'PIN
 sectors = ['XLK', 'XLC', 'XLV', 'XLF', 'XLP', 'XLI', 'XLE', 'XLY', 'XLB', 'XLU', 'XLRE', 'MAGS', 'SPY']
 subsectors = ['GDX', 'UFO', 'KBE', 'KRE', 'AMLP', 'ITA', 'ITB', 'IAK', 'SMH','XME', 'PINK', 'XBI', 'NLR', 'BOAT', 'WGMI', 'JETS', 'PEJ', 'QTUM', 'HACK', 'SHLD', 'REMX']
 ratecut_etfs = ['AAAU', 'COPX', 'CPER', 'URA', 'CANE', 'XOP', 'UNG', 'WOOD', 'LIT', 'PPLT', 'PALL', 'SLX', 'BNO', 'IBIT', 'SILJ', 'URNJ', 'SLV', 'ETHA', 'USCI', 'LITP']
-macro_etfs = ['EWA', 'INDA', 'IDX', 'EWM', 'THD', 'EIS', 'FXI', 'ENZL', 'EZA', 'EWY','EWU', 'ARGT', 'EWC', 'EWW', 'UAE', 'EWS', 'COLO', 'EWG', 'EPOL', 'EWD', 'VGK', 'EWO', 'EWP', 'QAT', 'EWK', 'EWT', 'GREK', 'EWH', 'EWN', 'ECH', 'EPU']
+macro_etfs = ['EWA', 'INDA', 'IDX', 'EWM', 'THD', 'EIS', 'FXI', 'ENZL', 'EZA', 'EWY','EWU', 'ARGT', 'EWJ', 'EWC', 'EWW', 'UAE', 'EWS', 'COLO', 'EWG', 'EPOL', 'EWD', 'VGK', 'EWO', 'EWP', 'QAT', 'EWK', 'EWT', 'GREK', 'EWH', 'EWN', 'ECH', 'EPU']
 
 # Function to remove rows with any null values
 def remove_nulls(df):
@@ -901,6 +901,7 @@ elif selected_analysis == "Trailing Correlation Analysis":
     if st.button("Run Trailing Correlation Analysis"):
         results = calculate_rolling_correlations(symbols, benchmarks, api_token, rolling_window)
         visualize_rolling_correlations(results)
+
 
 
 

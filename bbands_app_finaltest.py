@@ -224,8 +224,7 @@ def fetch_z_score_data_from_firestore(score_type):
 
     return pd.DataFrame(data)
 
-# OPTIMIZED: Added caching with 10 minute TTL to reduce redundant API calls
-@st.cache_data(ttl=600)
+# Note: Caching removed to avoid ThreadPoolExecutor context issues
 def fetch_data(symbol, api_key):
     """Fetch historical data for a given symbol"""
     url = f'https://eodhistoricaldata.com/api/eod/{symbol}.US?api_token={api_key}&period=d&fmt=json'
@@ -241,8 +240,7 @@ def fetch_data(symbol, api_key):
         print(f"Failed to fetch data for {symbol}: {response.status_code}")
         return symbol, pd.DataFrame()
 
-# OPTIMIZED: Added caching with 1 minute TTL for real-time price
-@st.cache_data(ttl=60)
+# Note: Caching removed to avoid ThreadPoolExecutor context issues
 def fetch_real_time_price(symbol, api_key):
     """Fetch real-time data for a given symbol"""
     url = f'https://eodhd.com/api/real-time/{symbol}.US?api_token={api_key}&fmt=json'
@@ -258,8 +256,7 @@ def fetch_real_time_price(symbol, api_key):
         print(f"Failed to fetch real-time data for {symbol}: {response.status_code}")
         return None
 
-# OPTIMIZED: Added caching with 1 minute TTL
-@st.cache_data(ttl=60)
+# Note: Caching removed to avoid ThreadPoolExecutor context issues
 def fetch_current_price(symbol, api_token):
     url = f'https://eodhd.com/api/real-time/{symbol}.US?api_token={api_token}&fmt=json'
     response = requests.get(url)
@@ -274,7 +271,7 @@ def fetch_current_price(symbol, api_token):
         return None
 
 # OPTIMIZED: Reduced from 6 API calls to 2 API calls per symbol
-@st.cache_data(ttl=300)
+# Note: Caching removed to avoid ThreadPoolExecutor context issues
 def analyze_symbol_optimized(symbol, api_token):
     """
     OPTIMIZED VERSION: Reduced from 6 API calls to 2 API calls
@@ -335,8 +332,7 @@ def analyze_symbol_optimized(symbol, api_token):
         print(f"Error calculating metrics for {symbol}: {e}")
         return symbol, current_price, None, None, None, None, None
 
-# OPTIMIZED: Added caching for historical data
-@st.cache_data(ttl=300)
+# Note: Caching removed to avoid ThreadPoolExecutor context issues
 def fetch_historical_data_cached(symbol, api_token, start_date, end_date):
     """Cached version of fetch_historical_data"""
     url = f'https://eodhistoricaldata.com/api/eod/{symbol}.US?api_token={api_token}&from={start_date}&to={end_date}&fmt=json&adjusted=true'

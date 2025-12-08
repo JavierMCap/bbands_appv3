@@ -202,27 +202,61 @@ def fetch_bbands_data_from_firestore(sector):
 # OPTIMIZED: Added caching with 5 minute TTL
 @st.cache_data(ttl=300)
 def fetch_roc_stddev_data_from_firestore(performance_type):
-    collection_ref = db.collection('ROCSTDEV_Results').document(performance_type).collection('Top_Symbols')
-    docs = collection_ref.stream()
-    data = [doc.to_dict() for doc in docs]
-    df = pd.DataFrame(data)
-    
-    # Reorder columns
-    df = df[['Symbol', 'ROC/STDDEV', 'RSI', 'Sector']]
-    
-    # Sort by ROC/STDDEV in descending order
-    df = df.sort_values(by='ROC/STDDEV', ascending=False)
-    
-    return df
+    try:
+        collection_ref = db.collection('ROCSTDEV_Results').document(performance_type).collection('Top_Symbols')
+        docs = collection_ref.stream()
+        data = [doc.to_dict() for doc in docs]
+        
+        if not data:
+            st.warning(f"⚠️ No data found in Firestore for {performance_type}. The backend script may need to run first.")
+            return pd.DataFrame(columns=['Symbol', 'ROC/STDDEV', 'RSI', 'Sector'])
+        
+        df = pd.DataFrame(data)
+        
+        # Check if required columns exist
+        required_columns = ['Symbol', 'ROC/STDDEV', 'RSI', 'Sector']
+        missing_columns = [col for col in required_columns if col not in df.columns]
+        
+        if missing_columns:
+            st.error(f"❌ Missing columns in Firestore data: {missing_columns}")
+            st.info(f"Available columns: {list(df.columns)}")
+            return df  # Return what we have
+        
+        # Reorder columns only if all exist
+        df = df[required_columns]
+        
+        # Sort by ROC/STDDEV in descending order
+        df = df.sort_values(by='ROC/STDDEV', ascending=False)
+        
+        return df
+        
+    except Exception as e:
+        st.error(f"❌ Error fetching ROC/STDDEV data: {str(e)}")
+        return pd.DataFrame(columns=['Symbol', 'ROC/STDDEV', 'RSI', 'Sector'])
 
 # OPTIMIZED: Added caching with 5 minute TTL
 @st.cache_data(ttl=300)
 def fetch_z_score_data_from_firestore(score_type):
-    collection_ref = db.collection('Z_score_results').document(score_type).collection('Records')
-    docs = collection_ref.stream()
-    data = [doc.to_dict() for doc in docs]
-
-    return pd.DataFrame(data)
+    try:
+        collection_ref = db.collection('Z_score_results').document(score_type).collection('Records')
+        docs = collection_ref.stream()
+        data = [doc.to_dict() for doc in docs]
+        
+        if not data:
+            st.warning(f"⚠️ No data found in Firestore for {score_type}. The backend script may need to run first.")
+            return pd.DataFrame(columns=['Ticker', 'Z-Score', 'Sector'])
+        
+        df = pd.DataFrame(data)
+        
+        # Sort by Z-Score if column exists
+        if 'Z-Score' in df.columns:
+            df = df.sort_values(by='Z-Score', ascending=False)
+        
+        return df
+        
+    except Exception as e:
+        st.error(f"❌ Error fetching Z-Score data: {str(e)}")
+        return pd.DataFrame(columns=['Ticker', 'Z-Score', 'Sector'])
 
 # Note: Caching removed to avoid ThreadPoolExecutor context issues
 def fetch_data(symbol, api_key):
@@ -772,6 +806,140 @@ elif selected_analysis == "Sector Overall Performance":
         })
         st.dataframe(macro_etfs_df_styled, height=500, width=1000)
     
+
+# ROC/STDDEV Analysis Display Section
+elif selected_analysis == "ROC/STDDEV analysis":
+    st.title(f"{performance_type} - ROC/STDDEV Analysis")
+
+    # Check if dataframe is empty
+    if df.empty:
+        st.warning("⚠️ No data available. Please run the backend script first or select a different performance type.")
+    elif performance_type == "Consecutive_Appearances":
+        # Display the DataFrame with consecutive appearances sorted by returns
+        st.dataframe(df, height=500, width=1000)
+    else:
+        # Display the ROC/STDDEV analysis DataFrame
+        st.dataframe(df, height=500, width=1000)
+
+        # Only show ticker selection if we have data
+        if not df.empty and 'Symbol' in df.columns:
+            # Display chart and data for selected symbol
+            selected_ticker = st.selectbox("Select Ticker to View Chart", df['Symbol'])
+
+            # Extract the ETF symbol for the selected ticker from the dataframe
+            if 'Sector' in df.columns:
+                selected_sector = df.loc[df['Symbol'] == selected_ticker, 'Sector'].values[0]
+            else:
+                selected_sector = "Unknown"
+            
+            # Generate and display the TradingView chart
+            col1, col2 = st.columns([3, 1])
+
+            with col1:
+                chart_html = generate_tradingview_embed(selected_ticker)
+                st.components.v1.html(chart_html, height=600)
+
+            # Perform and display the analysis for the selected ticker
+            symbol, current_price, today_percentage, five_day_percentage, mtd_percentage, qtd_percentage, ytd_percentage = analyze_symbol_optimized(selected_ticker, api_token)
+
+            if current_price is not None:
+                with col2:
+                    st.subheader(f"{selected_ticker}")
+                    st.write(f"**Current Price:** {current_price}")
+                    st.write(f"**Today:** {today_percentage}%")
+                    st.write(f"**5-Day:** {five_day_percentage}%")
+                    st.write(f"**MTD:** {mtd_percentage}%")
+                    st.write(f"**QTD:** {qtd_percentage}%")
+                    st.write(f"**YTD:** {ytd_percentage}%")
+            else:
+                st.write(f"Could not fetch data for {selected_ticker}. Please try again later.")
+
+            # Fetch correlations for selected ticker from Firestore
+            correlations = fetch_correlations_from_firestore(selected_ticker, selected_sector)
+            
+            if correlations:
+                lowest_5, highest_5 = extract_top_correlations(correlations)
+                
+                # Display the top 5 highest and lowest correlations
+                st.subheader(f"5 Highest Correlations for {selected_ticker}")
+                st.dataframe(lowest_5)
+
+                st.subheader(f"5 Lowest Correlations for {selected_ticker}")
+                st.dataframe(highest_5)
+                
+            # Create the scatter plot for ROC/STDDEV vs RSI
+            if 'ROC/STDDEV' in df.columns and 'RSI' in df.columns and not df.empty:
+                # Calculate min and max for x and y axes
+                x_min, x_max = df['ROC/STDDEV'].min(), df['ROC/STDDEV'].max()
+                y_min, y_max = df['RSI'].min(), df['RSI'].max()
+                
+                # Create scatter plot with dynamic domain
+                scatter = alt.Chart(df).mark_circle(size=60).encode(
+                    x=alt.X('ROC/STDDEV', scale=alt.Scale(domain=[x_min, x_max]), title='ROC/STDDEV'),
+                    y=alt.Y('RSI', scale=alt.Scale(domain=[y_min, y_max]), title='RSI'),
+                    color=alt.Color('Symbol', legend=None),
+                    tooltip=['Symbol', 'ROC/STDDEV', 'RSI']
+                ).interactive()
+                
+                # Add text labels to the points
+                text = scatter.mark_text(
+                    align='left',
+                    baseline='middle',
+                    dx=7,
+                    fontSize=10
+                ).encode(
+                    text='Symbol'
+                )
+                
+                # Combine the scatter plot and text
+                chart = scatter + text
+                
+                chart = chart.properties(
+                    title='ROC/STDDEV vs RSI Scatter Plot'
+                ).configure_axis(
+                    grid=True
+                ).configure_title(
+                    fontSize=20
+                ).configure_legend(
+                    labelFontSize=12,
+                    titleFontSize=14
+                )
+                
+                st.altair_chart(chart, use_container_width=True)
+            else:
+                st.info("📊 Scatter plot not available (missing required columns or empty data).")
+
+
+# Z-Score Analysis Display Section
+elif selected_analysis == "Z Score Analysis":
+    st.title(f"{score_type} - Z-Score Analysis")
+    
+    # Check if dataframe is empty
+    if df.empty:
+        st.warning("⚠️ No data available. Please run the backend script first.")
+    else:
+        # Display the Z-Score DataFrame
+        st.dataframe(df, height=500, width=1000)
+        
+        # Only show ticker selection if we have data and the Ticker column exists
+        if 'Ticker' in df.columns:
+            st.subheader("Select a ticker to view details")
+            selected_ticker = st.selectbox("Select Ticker", df['Ticker'])
+            
+            # Display detailed info for selected ticker
+            ticker_data = df[df['Ticker'] == selected_ticker].iloc[0]
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric("Ticker", ticker_data['Ticker'])
+                if 'Z-Score' in ticker_data:
+                    st.metric("Z-Score", f"{ticker_data['Z-Score']:.2f}")
+            with col2:
+                if 'Sector' in ticker_data:
+                    st.metric("Sector", ticker_data['Sector'])
+        else:
+            st.info("ℹ️ Ticker details not available (missing 'Ticker' column).")
+
 
 # Add Trailing Correlation Analysis
 elif selected_analysis == "Trailing Correlation Analysis":

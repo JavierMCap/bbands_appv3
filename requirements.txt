@@ -1,4 +1,4 @@
-numpy==1.24.0
+numpy>=1.26.4
 pandas==2.0.3
 requests==2.32.0
 streamlit==1.24.1
@@ -8,4 +8,5 @@ Pillow
 firebase_admin==6.2.0
 streamlit-tags==1.2.6
 boto3==1.28.0
+
 

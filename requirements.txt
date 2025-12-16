@@ -1,10 +1,10 @@
 numpy>=1.26.4
-pandas==2.0.3
+pandas>=2.2.0
 requests==2.32.0
-streamlit==1.24.1
+streamlit>=1.35.0
 openpyxl==3.1.2
 altair==5.0.1
-Pillow
+Pillow>=10.3.0
 firebase_admin==6.2.0
 streamlit-tags==1.2.6
 boto3==1.28.0

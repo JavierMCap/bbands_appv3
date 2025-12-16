@@ -8,5 +8,3 @@ Pillow
 firebase_admin==6.2.0
 streamlit-tags==1.2.6
 boto3==1.28.0
-
-

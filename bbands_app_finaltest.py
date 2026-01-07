@@ -773,7 +773,7 @@ elif selected_analysis == "Sector Overall Performance":
     st.title("Sector and Subsector Performance")
     
     # Add info about cache with API call statistics
-    st.info("📊 **OPTIMIZATION:** Data cached for 5 minutes using Streamlit cache_data. Reduces API calls by ~67%. Click 'Clear Cache & Refresh' to force update.")
+    st.info("📊 **OPTIMIZATION:** Data cached for 5 minutes using Streamlit cache_data. Click 'Clear Cache & Refresh' to force update.")
     
     col1, col2 = st.columns([1, 4])
     with col1:
@@ -994,4 +994,5 @@ elif selected_analysis == "Trailing Correlation Analysis":
         # OPTIMIZED: Now uses cached version
         results = calculate_rolling_correlations(symbols, benchmarks, api_token, rolling_window)
         visualize_rolling_correlations(results)
+
 

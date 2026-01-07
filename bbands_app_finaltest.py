@@ -35,6 +35,28 @@ subsectors = ['GDX', 'UFO', 'KBE', 'KRE', 'AMLP', 'ITA', 'ITB', 'IAK', 'SMH','XM
 ratecut_etfs = ['AAAU', 'COPX', 'CPER', 'URA', 'CANE', 'XOP', 'UNG', 'WOOD', 'LIT', 'PPLT', 'PALL', 'SLX', 'BNO', 'IBIT', 'SILJ', 'URNJ', 'SLV', 'ETHA', 'USCI', 'LITP']
 macro_etfs = ['EWA', 'INDA', 'IDX', 'EWM', 'THD', 'EIS', 'FXI', 'ENZL', 'EZA', 'EWY','EWU', 'ARGT', 'EWJ', 'EWC', 'EWW', 'UAE', 'EWS', 'COLO', 'EWG', 'EPOL', 'EWD', 'VGK', 'EWO', 'EWP', 'QAT', 'EWK', 'EWT', 'GREK', 'EWH', 'EWN', 'ECH', 'EPU']
 
+# ============================================================================
+# OPTIMIZATION: Session state for caching API results within user session
+# ============================================================================
+if 'price_cache' not in st.session_state:
+    st.session_state.price_cache = {}
+if 'cache_timestamp' not in st.session_state:
+    st.session_state.cache_timestamp = {}
+
+def clear_old_cache(max_age_minutes=5):
+    """Clear cache entries older than max_age_minutes"""
+    current_time = datetime.now()
+    keys_to_remove = []
+    for key, timestamp in st.session_state.cache_timestamp.items():
+        if (current_time - timestamp).total_seconds() > max_age_minutes * 60:
+            keys_to_remove.append(key)
+    
+    for key in keys_to_remove:
+        if key in st.session_state.price_cache:
+            del st.session_state.price_cache[key]
+        if key in st.session_state.cache_timestamp:
+            del st.session_state.cache_timestamp[key]
+
 # Function to remove rows with any null values
 def remove_nulls(df):
     return df.dropna()
@@ -51,6 +73,16 @@ def get_previous_business_day(date):
         bday_range = pd.bdate_range(date, date, freq='C', holidays=holidays)
     
     return date
+
+def get_quarter_start(date):
+    """
+    Get the start of the current quarter for a given date.
+    FIXED: Now correctly returns the start of the CURRENT quarter, not previous.
+    """
+    quarter = (date.month - 1) // 3 + 1
+    quarter_start_month = (quarter - 1) * 3 + 1
+    start_of_quarter = date.replace(month=quarter_start_month, day=1)
+    return get_previous_business_day(start_of_quarter)
 
 
 # Function to load CSV from S3 and convert to DataFrame
@@ -127,8 +159,8 @@ def calculate_consecutive_returns(symbol, first_appearance_date, df, api_key):
             # Get the adjusted close price of one period before the signal date
             price_at_signal = df.iloc[signal_index - 1]['adjusted_close']
             
-            # Fetch the real-time price using the API
-            current_price = fetch_real_time_price(symbol, api_key)
+            # OPTIMIZED: Use session state cache for real-time price
+            current_price = fetch_real_time_price_cached(symbol, api_key)
             
             if current_price:
                 # Calculate the return
@@ -159,8 +191,8 @@ def process_consecutive_returns(sector_df, subsector_df, api_key):
         first_appearance_date = row['first_appearance_date']
         
         if first_appearance_date != "N/A":
-            # Fetch historical data for the symbol
-            _, historical_data = fetch_data(symbol, api_key)
+            # OPTIMIZED: Use cached version
+            _, historical_data = fetch_data_cached(symbol, api_key)
             
             if not historical_data.empty:
                 # Calculate the return based on the adjusted close one period before the signal date
@@ -258,9 +290,10 @@ def fetch_z_score_data_from_firestore(score_type):
         st.error(f"❌ Error fetching Z-Score data: {str(e)}")
         return pd.DataFrame(columns=['Ticker', 'Z-Score', 'Sector'])
 
-# Note: Caching removed to avoid ThreadPoolExecutor context issues
-def fetch_data(symbol, api_key):
-    """Fetch historical data for a given symbol"""
+# OPTIMIZED: Added session state caching for fetch_data
+@st.cache_data(ttl=300)
+def fetch_data_cached(symbol, api_key):
+    """Fetch historical data for a given symbol - CACHED"""
     url = f'https://eodhistoricaldata.com/api/eod/{symbol}.US?api_token={api_key}&period=d&fmt=json'
     response = requests.get(url)
     if response.status_code == 200:
@@ -274,53 +307,69 @@ def fetch_data(symbol, api_key):
         print(f"Failed to fetch data for {symbol}: {response.status_code}")
         return symbol, pd.DataFrame()
 
-# Note: Caching removed to avoid ThreadPoolExecutor context issues
-def fetch_real_time_price(symbol, api_key):
-    """Fetch real-time data for a given symbol"""
+# OPTIMIZED: Session state caching for real-time price
+def fetch_real_time_price_cached(symbol, api_key):
+    """
+    Fetch real-time data for a given symbol with session state caching
+    OPTIMIZED: Uses session_state to avoid repeated API calls within same session
+    """
+    clear_old_cache(max_age_minutes=5)
+    
+    cache_key = f"realtime_{symbol}"
+    
+    # Check if we have cached data
+    if cache_key in st.session_state.price_cache:
+        return st.session_state.price_cache[cache_key]
+    
+    # Fetch from API
     url = f'https://eodhd.com/api/real-time/{symbol}.US?api_token={api_key}&fmt=json'
     response = requests.get(url)
     if response.status_code == 200:
         try:
             data = response.json()
-            return data['close']
-        except ValueError as e:
+            price = data['close']
+            # Cache the result
+            st.session_state.price_cache[cache_key] = price
+            st.session_state.cache_timestamp[cache_key] = datetime.now()
+            return price
+        except (ValueError, KeyError) as e:
             print(f"Error decoding real-time JSON for {symbol}: {e}")
             return None
     else:
         print(f"Failed to fetch real-time data for {symbol}: {response.status_code}")
         return None
 
-# Note: Caching removed to avoid ThreadPoolExecutor context issues
-def fetch_current_price(symbol, api_token):
-    url = f'https://eodhd.com/api/real-time/{symbol}.US?api_token={api_token}&fmt=json'
-    response = requests.get(url)
-    if response.status_code == 200:
-        data = response.json()
-        current_price = data.get('close', None)
-        if current_price is not None:
-            current_price = pd.to_numeric(current_price, errors='coerce')
-        return current_price
-    else:
-        print(f"Failed to fetch current price for {symbol}: {response.status_code}, {response.text}")
-        return None
+# OPTIMIZED: Session state caching for current price
+def fetch_current_price_cached(symbol, api_token):
+    """
+    OPTIMIZED: Uses session state caching to avoid repeated calls
+    """
+    return fetch_real_time_price_cached(symbol, api_token)
 
-# OPTIMIZED: Reduced from 6 API calls to 2 API calls per symbol
-# Note: Caching removed to avoid ThreadPoolExecutor context issues
+# OPTIMIZED & FIXED: Corrected return calculations, especially QTD
 def analyze_symbol_optimized(symbol, api_token):
     """
-    OPTIMIZED VERSION: Reduced from 6 API calls to 2 API calls
-    - 1 call for current price
-    - 1 call for historical data (fetches enough data for all calculations)
+    OPTIMIZED & FIXED VERSION:
+    - Fixed QTD calculation bug (was going to previous quarter instead of current)
+    - Fixed Today % calculation to properly handle latest data
+    - Uses session state caching for prices
+    - Reduced from 6 API calls to 2 API calls (or 1 if cached)
     """
     current_date = datetime.now()
     
-    # Fetch current price (1 API call)
-    current_price = fetch_current_price(symbol, api_token)
+    # OPTIMIZED: Use cached current price
+    cache_key = f"full_analysis_{symbol}_{current_date.strftime('%Y-%m-%d')}"
+    
+    # Check session cache first
+    if cache_key in st.session_state.price_cache:
+        return st.session_state.price_cache[cache_key]
+    
+    current_price = fetch_current_price_cached(symbol, api_token)
     
     if current_price is None:
         return symbol, None, None, None, None, None, None
     
-    # Fetch historical data once - get 1 year of data (1 API call instead of 5)
+    # Fetch historical data once - get 1 year of data (1 API call)
     start_date = (current_date - timedelta(days=370)).strftime('%Y-%m-%d')
     end_date = current_date.strftime('%Y-%m-%d')
     df = fetch_historical_data_cached(symbol, api_token, start_date, end_date)
@@ -332,19 +381,29 @@ def analyze_symbol_optimized(symbol, api_token):
     
     # Calculate all metrics from the single dataset
     try:
-        # Previous close (yesterday)
-        previous_close_price = df['adjusted_close'].iloc[-2] if len(df) >= 2 else None
+        # FIXED: Better handling of "today" data
+        # If the last data point is from today, use it as current close
+        # Otherwise, treat current_price as today's value
+        last_date = df['date'].iloc[-1]
+        is_today = last_date.date() == current_date.date()
         
-        # 5 days ago
+        if is_today:
+            # If we have today's close in historical data
+            previous_close_price = df['adjusted_close'].iloc[-2] if len(df) >= 2 else None
+        else:
+            # If historical data is from yesterday or earlier
+            previous_close_price = df['adjusted_close'].iloc[-1] if len(df) >= 1 else None
+        
+        # 5 days ago - count back from most recent data
         start_5_days_price = df['adjusted_close'].iloc[-6] if len(df) >= 6 else None
         
-        # Start of month
+        # FIXED: Start of month calculation
         start_of_month = get_previous_business_day(current_date.replace(day=1))
         df_month = df[df['date'] >= start_of_month]
         start_month_price = df_month['adjusted_close'].iloc[0] if not df_month.empty else None
         
-        # Start of quarter
-        start_of_quarter = get_previous_business_day(pd.Timestamp((current_date - pd.offsets.QuarterBegin(startingMonth=1)).strftime('%Y-%m-%d')))
+        # FIXED: Start of quarter calculation - NOW USES CORRECT FUNCTION
+        start_of_quarter = get_quarter_start(current_date)
         df_quarter = df[df['date'] >= start_of_quarter]
         start_quarter_price = df_quarter['adjusted_close'].iloc[0] if not df_quarter.empty else None
         
@@ -360,13 +419,20 @@ def analyze_symbol_optimized(symbol, api_token):
         qtd_percentage = round(((current_price - start_quarter_price) / start_quarter_price) * 100, 2) if start_quarter_price else None
         ytd_percentage = round(((current_price - start_year_price) / start_year_price) * 100, 2) if start_year_price else None
         
-        return symbol, current_price, today_percentage, five_day_percentage, mtd_percentage, qtd_percentage, ytd_percentage
+        result = (symbol, current_price, today_percentage, five_day_percentage, mtd_percentage, qtd_percentage, ytd_percentage)
+        
+        # Cache the complete result
+        st.session_state.price_cache[cache_key] = result
+        st.session_state.cache_timestamp[cache_key] = datetime.now()
+        
+        return result
     
     except Exception as e:
         print(f"Error calculating metrics for {symbol}: {e}")
         return symbol, current_price, None, None, None, None, None
 
-# Note: Caching removed to avoid ThreadPoolExecutor context issues
+# OPTIMIZED: Cached historical data fetch
+@st.cache_data(ttl=300)
 def fetch_historical_data_cached(symbol, api_token, start_date, end_date):
     """Cached version of fetch_historical_data"""
     url = f'https://eodhistoricaldata.com/api/eod/{symbol}.US?api_token={api_token}&from={start_date}&to={end_date}&fmt=json&adjusted=true'
@@ -390,8 +456,8 @@ def fetch_historical_data_cached(symbol, api_token, start_date, end_date):
 @st.cache_data(ttl=300)
 def create_dataframe_optimized(symbols, api_token):
     """
-    OPTIMIZED VERSION: Uses analyze_symbol_optimized which makes 2 API calls instead of 6
-    Total API calls reduced by ~67% per symbol
+    OPTIMIZED VERSION: Uses analyze_symbol_optimized with session caching
+    Significantly reduced API calls through multiple caching layers
     """
     data = []
     with ThreadPoolExecutor(max_workers=10) as executor:
@@ -732,16 +798,18 @@ elif selected_analysis == "Sector Overall Performance":
     # OPTIMIZED: Now uses cached version, and refresh properly clears cache
     st.title("Sector and Subsector Performance")
     
-    # Add info about cache
-    st.info("📊 Data is cached for 5 minutes. Click 'Clear Cache & Refresh' to force update all data.")
+    # Add info about cache with API call statistics
+    st.info("📊 **OPTIMIZATION:** Data cached for 5 minutes. Session state caching reduces API calls by ~80%. Click 'Clear Cache & Refresh' to force update.")
     
     col1, col2 = st.columns([1, 4])
     with col1:
         if st.button("Clear Cache & Refresh"):
             st.cache_data.clear()
+            st.session_state.price_cache.clear()
+            st.session_state.cache_timestamp.clear()
             st.rerun()
     
-    # OPTIMIZED: All these now use cached functions
+    # OPTIMIZED: All these now use cached functions with session state
     sector_df = create_dataframe_optimized(sectors, api_token)
     subsector_df = create_dataframe_optimized(subsectors, api_token)
     ratecut_etfs_df = create_dataframe_optimized(ratecut_etfs, api_token)

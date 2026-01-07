@@ -36,26 +36,9 @@ ratecut_etfs = ['AAAU', 'COPX', 'CPER', 'URA', 'CANE', 'XOP', 'UNG', 'WOOD', 'LI
 macro_etfs = ['EWA', 'INDA', 'IDX', 'EWM', 'THD', 'EIS', 'FXI', 'ENZL', 'EZA', 'EWY','EWU', 'ARGT', 'EWJ', 'EWC', 'EWW', 'UAE', 'EWS', 'COLO', 'EWG', 'EPOL', 'EWD', 'VGK', 'EWO', 'EWP', 'QAT', 'EWK', 'EWT', 'GREK', 'EWH', 'EWN', 'ECH', 'EPU']
 
 # ============================================================================
-# OPTIMIZATION: Session state for caching API results within user session
+# OPTIMIZATION: Using Streamlit's @st.cache_data decorator for caching
+# Thread-safe and works with ThreadPoolExecutor
 # ============================================================================
-if 'price_cache' not in st.session_state:
-    st.session_state.price_cache = {}
-if 'cache_timestamp' not in st.session_state:
-    st.session_state.cache_timestamp = {}
-
-def clear_old_cache(max_age_minutes=5):
-    """Clear cache entries older than max_age_minutes"""
-    current_time = datetime.now()
-    keys_to_remove = []
-    for key, timestamp in st.session_state.cache_timestamp.items():
-        if (current_time - timestamp).total_seconds() > max_age_minutes * 60:
-            keys_to_remove.append(key)
-    
-    for key in keys_to_remove:
-        if key in st.session_state.price_cache:
-            del st.session_state.price_cache[key]
-        if key in st.session_state.cache_timestamp:
-            del st.session_state.cache_timestamp[key]
 
 # Function to remove rows with any null values
 def remove_nulls(df):
@@ -307,30 +290,19 @@ def fetch_data_cached(symbol, api_key):
         print(f"Failed to fetch data for {symbol}: {response.status_code}")
         return symbol, pd.DataFrame()
 
-# OPTIMIZED: Session state caching for real-time price
+# OPTIMIZED: Real-time price fetch (thread-safe with cache_data)
+@st.cache_data(ttl=300)
 def fetch_real_time_price_cached(symbol, api_key):
     """
-    Fetch real-time data for a given symbol with session state caching
-    OPTIMIZED: Uses session_state to avoid repeated API calls within same session
+    Fetch real-time data for a given symbol with Streamlit caching
+    OPTIMIZED: Thread-safe using cache_data decorator (5-minute cache)
     """
-    clear_old_cache(max_age_minutes=5)
-    
-    cache_key = f"realtime_{symbol}"
-    
-    # Check if we have cached data
-    if cache_key in st.session_state.price_cache:
-        return st.session_state.price_cache[cache_key]
-    
-    # Fetch from API
     url = f'https://eodhd.com/api/real-time/{symbol}.US?api_token={api_key}&fmt=json'
     response = requests.get(url)
     if response.status_code == 200:
         try:
             data = response.json()
             price = data['close']
-            # Cache the result
-            st.session_state.price_cache[cache_key] = price
-            st.session_state.cache_timestamp[cache_key] = datetime.now()
             return price
         except (ValueError, KeyError) as e:
             print(f"Error decoding real-time JSON for {symbol}: {e}")
@@ -339,12 +311,24 @@ def fetch_real_time_price_cached(symbol, api_key):
         print(f"Failed to fetch real-time data for {symbol}: {response.status_code}")
         return None
 
-# OPTIMIZED: Session state caching for current price
+# OPTIMIZED: Cached current price fetch (thread-safe)
+@st.cache_data(ttl=300)
 def fetch_current_price_cached(symbol, api_token):
     """
-    OPTIMIZED: Uses session state caching to avoid repeated calls
+    OPTIMIZED: Uses Streamlit cache_data instead of session state (thread-safe)
+    Cached for 5 minutes to reduce API calls
     """
-    return fetch_real_time_price_cached(symbol, api_token)
+    url = f'https://eodhd.com/api/real-time/{symbol}.US?api_token={api_token}&fmt=json'
+    response = requests.get(url)
+    if response.status_code == 200:
+        data = response.json()
+        current_price = data.get('close', None)
+        if current_price is not None:
+            current_price = pd.to_numeric(current_price, errors='coerce')
+        return current_price
+    else:
+        print(f"Failed to fetch current price for {symbol}: {response.status_code}, {response.text}")
+        return None
 
 # OPTIMIZED & FIXED: Corrected return calculations, especially QTD
 def analyze_symbol_optimized(symbol, api_token):
@@ -352,24 +336,18 @@ def analyze_symbol_optimized(symbol, api_token):
     OPTIMIZED & FIXED VERSION:
     - Fixed QTD calculation bug (was going to previous quarter instead of current)
     - Fixed Today % calculation to properly handle latest data
-    - Uses session state caching for prices
-    - Reduced from 6 API calls to 2 API calls (or 1 if cached)
+    - Thread-safe: No session_state access (works in ThreadPoolExecutor)
+    - Reduced from 6 API calls to 2 API calls with caching
     """
     current_date = datetime.now()
     
-    # OPTIMIZED: Use cached current price
-    cache_key = f"full_analysis_{symbol}_{current_date.strftime('%Y-%m-%d')}"
-    
-    # Check session cache first
-    if cache_key in st.session_state.price_cache:
-        return st.session_state.price_cache[cache_key]
-    
+    # Fetch current price using cached version
     current_price = fetch_current_price_cached(symbol, api_token)
     
     if current_price is None:
         return symbol, None, None, None, None, None, None
     
-    # Fetch historical data once - get 1 year of data (1 API call)
+    # Fetch historical data once - get 1 year of data (1 API call via cache)
     start_date = (current_date - timedelta(days=370)).strftime('%Y-%m-%d')
     end_date = current_date.strftime('%Y-%m-%d')
     df = fetch_historical_data_cached(symbol, api_token, start_date, end_date)
@@ -420,10 +398,6 @@ def analyze_symbol_optimized(symbol, api_token):
         ytd_percentage = round(((current_price - start_year_price) / start_year_price) * 100, 2) if start_year_price else None
         
         result = (symbol, current_price, today_percentage, five_day_percentage, mtd_percentage, qtd_percentage, ytd_percentage)
-        
-        # Cache the complete result
-        st.session_state.price_cache[cache_key] = result
-        st.session_state.cache_timestamp[cache_key] = datetime.now()
         
         return result
     
@@ -799,17 +773,15 @@ elif selected_analysis == "Sector Overall Performance":
     st.title("Sector and Subsector Performance")
     
     # Add info about cache with API call statistics
-    st.info("📊 **OPTIMIZATION:** Data cached for 5 minutes. Session state caching reduces API calls by ~80%. Click 'Clear Cache & Refresh' to force update.")
+    st.info("📊 **OPTIMIZATION:** Data cached for 5 minutes using Streamlit cache_data. Reduces API calls by ~67%. Click 'Clear Cache & Refresh' to force update.")
     
     col1, col2 = st.columns([1, 4])
     with col1:
         if st.button("Clear Cache & Refresh"):
             st.cache_data.clear()
-            st.session_state.price_cache.clear()
-            st.session_state.cache_timestamp.clear()
             st.rerun()
     
-    # OPTIMIZED: All these now use cached functions with session state
+    # OPTIMIZED: All these now use cached functions
     sector_df = create_dataframe_optimized(sectors, api_token)
     subsector_df = create_dataframe_optimized(subsectors, api_token)
     ratecut_etfs_df = create_dataframe_optimized(ratecut_etfs, api_token)
@@ -1022,3 +994,4 @@ elif selected_analysis == "Trailing Correlation Analysis":
         # OPTIMIZED: Now uses cached version
         results = calculate_rolling_correlations(symbols, benchmarks, api_token, rolling_window)
         visualize_rolling_correlations(results)
+
